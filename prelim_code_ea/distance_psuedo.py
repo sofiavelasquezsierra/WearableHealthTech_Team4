@@ -9,6 +9,7 @@ def normalize_PelvisAccX(s):
 
 # geodesic rotation distance given two rotation matricies R1 and R2:
 # standard metric in IMU alignment
+# quantitative measurement of data harmonization quality
 def so3_distance(R1, R2):
     return np.arccos((np.trace(R1.T @ R2) - 1) / 2)
 
