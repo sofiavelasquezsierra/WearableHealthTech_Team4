@@ -1,32 +1,58 @@
 import re
-import pandas as pd
+# import pandas as pd
 
 # Construct a pattern based on the convention followed by the dataset you are trying to harmonize
 # Example Pattern: matches "Acc_X_LThigh" or "Gyr_Y_RShank"
 # Group 1: Sensor (Acc/Gyr), Group 2: Axis (X/Y/Z), Group 3: Segment (LThigh/RShank)
-pattern = r"([a-zA-Z]+)_([XYZ])_([a-zA-Z]+)"
-# seg_map = {"LThigh": "L_THIGH", "RShank": "R_SHANK", "LFoot": "L_FOOT"}
+# also give the order of the information that is found in dict format
+patternEx = r"([a-zA-Z]+)_([XYZ])_([a-zA-Z]+)"
+orderEx = ['sensor', 'axis', 'segment']
+patternHuGa = r"([a-z]+)_([a-z]+_[a-z]+)_([xyz])"
+orderHuGa = {'sensor' : [], 
+             'segment': [],
+             'axis'   : []}
 
 # Normalize meta data column names from a defined pattern
-def regex_meta_harmonize(col_name, pattern, seg_map, sens_map):
+def regex_meta_harmonize(col_name, pattern, order):
     match = re.search(pattern, col_name)
     if match:
-        sensor, axis, segment = match.groups() # based on the pattern defined
-        
+        sub1, sub2, sub3 = match.groups() # based on the pattern defined
+        sub = [sub1, sub2, sub3]
+        i = 0
+        for key in order:
+            order[key] = sub[i]
+            i = i + 1
         
         # 1) Convert segments
-        std_segment = get_smart_segment(segment) 
+        std_segment = get_segment(order['segment'])
         
         # 2) Convert sensors
-        sens_map = {"Acc": "ACCEL", "Gyr": "GYRO", "Mag": "MAG"}
-        std_sensor = sens_map.get(sensor, sensor.upper())
+        std_sensor = get_sensor(order['sensor'])
         
         # 3) Reassemble into your Gold Standard: SEGMENT_SENSOR_AXIS
+        axis = order['axis']
         return f"{std_segment}_{std_sensor}_{axis.upper()}"
-    
-    return col_name # Return original if no match
 
-def get_smart_segment(raw_segment):
+    return f"UNKNOWN: {col_name}"
+
+def get_sensor(raw_sensor):
+    sensor_keywords = {
+        'GYR' : ['gyr', 'gyroscope'],
+        'ACC' : ['acc', 'acceleration'],
+        'MAG' : ['mag', 'magnometer']
+    }
+
+    found_sensor = "NONE"
+    for key in sensor_keywords:
+        for term in sensor_keywords[key]:
+            if term in raw_sensor:
+                found_sensor = key
+                break
+
+    return found_sensor
+
+
+def get_segment(raw_segment):
     raw_segment = raw_segment.lower().replace("_", "")
     
     # 1. Determine Side
@@ -40,15 +66,23 @@ def get_smart_segment(raw_segment):
     # You only need to define the base anatomical terms once
     #   'GROUND_TRUTH'  : ['list', 'of', 'potential', 'names']
     anatomy_keywords = {
-        'THIGH'         : ['thigh', 'THIGH'],
-        'SHANK'         : ['shank', 'SHANK', 'leg', 'LEG'],
-        'FOOT'          : ['foot', 'FOOT'],
+        # Lower Body
+        'THIGH'         : ['thigh', 'THIGH', 'upper_leg', 'upperLeg', 'UPPER_LEG'],
+        'SHANK'         : ['shank', 'SHANK', 'leg', 'LEG', 'lower_leg', 'lowerLeg', 'LOWER_LEG', 'shin', 'SHIN'],
         'PELVIS'        : ['pelvis', 'PELVIS', 'sacrum', 'SACRUM'],
+        'ANKLE'         : ['ankle', 'ANKLE'],
+        'FOOT'          : ['foot', 'FOOT'],
+        
+        # Upper Body
+        'STERNUM'       : ['sternum', 'STERNUM', 'chest', 'CHEST'],
         'ARM_UPPER'     : ['arm_upper', 'ARM_UPPER', 'humerus', 'HUMERUS'],
-        'ARM_LOWER'     : ['arm_lower', 'ARM_LOWER', 'radius', 'RADIUS']
+        'ARM_LOWER'     : ['arm_lower', 'ARM_LOWER', 'armLower', 'radius', 'RADIUS', 'forearm', 'FOREARM'],
+        'SHOULDER'      : ['shoulder', 'SHOULDER'],
+        'HAND'          : ['hand', 'HAND'],
+        'HEAD'          : ['head', 'HEAD']
     }
     
-    found_anatomy = "UNKNOWN/MISSING"
+    found_anatomy = "NONE"
     for key in anatomy_keywords:
         for term in anatomy_keywords[key]:
             if term in raw_segment:
@@ -58,9 +92,7 @@ def get_smart_segment(raw_segment):
     return f"{side}_{found_anatomy}" if side else found_anatomy
 
 # Testing the smart segment logic
-print(get_smart_segment("LeftThigh")) # Output: L_THIGH
-print(get_smart_segment("r_shank"))   # Output: R_SHANK
-print(get_smart_segment("l_leg"))     # Output: L_SHANK
-print(get_smart_segment("sacrum"))    # Output: PELVIS
-print(get_smart_segment("PELVIS"))    # Output: PELVIS
-print(get_smart_segment("HUMERUS"))   # Output: ARM_UPPER
+print(regex_meta_harmonize("accelerometer_right_foot_x", patternHuGa, orderHuGa))
+print(regex_meta_harmonize("accelerometer_right_shin_x", patternHuGa, orderHuGa))
+print(regex_meta_harmonize("gyroscope_left_thigh_z", patternHuGa, orderHuGa))
+print(regex_meta_harmonize("EMG_right", patternHuGa, orderHuGa))   
