@@ -57,7 +57,7 @@ def get_smart_segment(raw_segment):
             
     return f"{side}_{found_anatomy}" if side else found_anatomy
 
-# Testing the "Smart" logic
+# Testing the smart segment logic
 print(get_smart_segment("LeftThigh")) # Output: L_THIGH
 print(get_smart_segment("r_shank"))   # Output: R_SHANK
 print(get_smart_segment("l_leg"))     # Output: L_SHANK
