@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<datacite:resource xmlns:mets="http://www.loc.gov/METS/" xmlns:datacite="http://datacite.org/schema/kernel-4" xmlns:premis="http://www.loc.gov/premis/v3" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dlcm="http://www.dlcm.ch/dlcm/v2" xmlns:fits="http://hul.harvard.edu/ois/xml/ns/fits/fits_output">
+    <datacite:identifier identifierType="DOI">10.26037/yareta:xkxgaw6ewjdhfntdhtj7upepxy</datacite:identifier>
+    <datacite:creators>
+        <datacite:creator>
+            <datacite:creatorName nameType="Personal">Grouvel, Gautier</datacite:creatorName>
+            <datacite:givenName>Gautier</datacite:givenName>
+            <datacite:familyName>Grouvel</datacite:familyName>
+            <datacite:nameIdentifier xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:nameIdentifier" nameIdentifierScheme="ORCID" schemeURI="https://orcid.org/">0000-0002-2797-7677</datacite:nameIdentifier>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation" affiliationIdentifier="https://ror.org/01swzsf04" affiliationIdentifierScheme="ROR">[UNIGE] Université de Genève</datacite:affiliation>
+        </datacite:creator>
+        <datacite:creator>
+            <datacite:creatorName nameType="Personal">Armand, Stéphane</datacite:creatorName>
+            <datacite:givenName>Stéphane</datacite:givenName>
+            <datacite:familyName>Armand</datacite:familyName>
+            <datacite:nameIdentifier xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:nameIdentifier" nameIdentifierScheme="ORCID" schemeURI="https://orcid.org/">0000-0001-9144-4982</datacite:nameIdentifier>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation" affiliationIdentifier="https://ror.org/01swzsf04" affiliationIdentifierScheme="ROR">[UNIGE] Université de Genève</datacite:affiliation>
+        </datacite:creator>
+        <datacite:creator>
+            <datacite:creatorName nameType="Personal">Moissenet, Florent</datacite:creatorName>
+            <datacite:givenName>Florent</datacite:givenName>
+            <datacite:familyName>Moissenet</datacite:familyName>
+            <datacite:nameIdentifier xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:nameIdentifier" nameIdentifierScheme="ORCID" schemeURI="https://orcid.org/">0000-0001-6479-1911</datacite:nameIdentifier>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation" affiliationIdentifier="https://ror.org/01swzsf04" affiliationIdentifierScheme="ROR">[UNIGE] Université de Genève</datacite:affiliation>
+        </datacite:creator>
+        <datacite:creator>
+            <datacite:creatorName nameType="Personal">Carcreff, Lena</datacite:creatorName>
+            <datacite:givenName>Lena</datacite:givenName>
+            <datacite:familyName>Carcreff</datacite:familyName>
+            <datacite:nameIdentifier xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:nameIdentifier" nameIdentifierScheme="ORCID" schemeURI="https://orcid.org/">0000-0003-0086-4944</datacite:nameIdentifier>
+        </datacite:creator>
+    </datacite:creators>
+    <datacite:titles>
+        <datacite:title>Human gait and other movements - markers / inertial sensors / pressure insoles / force plates</datacite:title>
+    </datacite:titles>
+    <datacite:publisher>Université de Genève, Yareta</datacite:publisher>
+    <datacite:publicationYear>2022</datacite:publicationYear>
+    <datacite:resourceType resourceTypeGeneral="Dataset">Dataset</datacite:resourceType>
+    <datacite:contributors>
+        <datacite:contributor contributorType="ResearchGroup">
+            <datacite:contributorName nameType="Organizational">[606780fb-30e9-4fde-bb9d-d5488ad219c2] Laboratory of Kinesiology</datacite:contributorName>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation">[UNIGE-Medecine] Université de Genève - Faculté de Médecine</datacite:affiliation>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation" affiliationIdentifier="https://ror.org/01swzsf04" affiliationIdentifierScheme="ROR">[UNIGE] Université de Genève</datacite:affiliation>
+        </datacite:contributor>
+        <datacite:contributor contributorType="ProjectManager">
+            <datacite:contributorName nameType="Personal">Moissenet, Florent</datacite:contributorName>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation" affiliationIdentifier="https://ror.org/01swzsf04" affiliationIdentifierScheme="ROR">[UNIGE] Université de Genève</datacite:affiliation>
+        </datacite:contributor>
+        <datacite:contributor contributorType="ProjectManager">
+            <datacite:contributorName nameType="Personal">Armand, Stéphane</datacite:contributorName>
+            <datacite:affiliation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="datacite:affiliation" affiliationIdentifier="https://ror.org/01swzsf04" affiliationIdentifierScheme="ROR">[UNIGE] Université de Genève</datacite:affiliation>
+        </datacite:contributor>
+    </datacite:contributors>
+    <datacite:dates>
+        <datacite:date dateType="Issued">2022-12-22T00:00:00Z</datacite:date>
+        <datacite:date dateType="Created">2022-12-22T13:30:10.589142Z</datacite:date>
+        <datacite:date dateType="Updated">2023-02-06T09:57:15.433363Z</datacite:date>
+        <datacite:date dateType="Accepted">2023-02-06T09:57:11.664257Z</datacite:date>
+    </datacite:dates>
+    <datacite:relatedIdentifiers/>
+    <datacite:formats>
+        <datacite:format>text/csv</datacite:format>
+        <datacite:format>application/octet-stream</datacite:format>
+        <datacite:format>audio/mpeg</datacite:format>
+        <datacite:format>text/plain</datacite:format>
+        <datacite:format>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</datacite:format>
+        <datacite:format>application/x-hdf</datacite:format>
+        <datacite:format>text/xml</datacite:format>
+    </datacite:formats>
+    <datacite:rightsList>
+        <datacite:rights rightsURI="https://www.dlcm.ch/access-level/final">PUBLIC</datacite:rights>
+        <datacite:rights rightsURI="https://creativecommons.org/licenses/by/4.0/" rightsIdentifier="CC-BY-4.0" rightsIdentifierScheme="SPDX">Creative Commons Attribution 4.0 International</datacite:rights>
+    </datacite:rightsList>
+    <datacite:descriptions>
+        <datacite:description descriptionType="Abstract">A full dataset of asymptomatic human gait and other movements including marker trajectories, inertial sensors and pressure insoles. Ten participants wore these devices on a 10-meters walkway in a laboratory.</datacite:description>
+    </datacite:descriptions>
+    <datacite:fundingReferences/>
+</datacite:resource>
