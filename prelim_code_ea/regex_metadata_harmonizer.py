@@ -75,11 +75,12 @@ def get_segment(raw_segment):
         
         # Upper Body
         'STERNUM'       : ['sternum', 'STERNUM', 'chest', 'CHEST'],
-        'ARM_UPPER'     : ['arm_upper', 'ARM_UPPER', 'humerus', 'HUMERUS'],
-        'ARM_LOWER'     : ['arm_lower', 'ARM_LOWER', 'armLower', 'radius', 'RADIUS', 'forearm', 'FOREARM'],
+        'ARM_UPPER'     : ['upperarm', 'UpperArm','arm_upper', 'ARM_UPPER', 'humerus', 'HUMERUS'],
+        'ARM_LOWER'     : ['arm_lower', 'ARM_LOWER', 'armLower', 'radius', 'RADIUS', 'forearm', 'FOREARM', 'ForeArm', 'LowerArm'],
         'SHOULDER'      : ['shoulder', 'SHOULDER'],
         'HAND'          : ['hand', 'HAND'],
-        'HEAD'          : ['head', 'HEAD']
+        'HEAD'          : ['head', 'HEAD'],
+        'NECK'          : ['NECK', 'neck', 'Neck']
     }
     
     found_anatomy = "NONE"
