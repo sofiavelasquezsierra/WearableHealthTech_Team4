@@ -17,7 +17,6 @@ RAW_DIR_MARKER = "00_raw"  # used to extract dataset name from path
 # Canonical sensor types for inertial measurement units (IMU)
 SENSOR_TYPES = ['ACC', 'GYR', 'MAG']
 
-# Canonical body segments for wearable sensor placement (lower body + common upper body)
 SENSOR_SEGMENTS = {
     'L_FOOT': 'Left Foot',
     'R_FOOT': 'Right Foot',
@@ -38,7 +37,6 @@ SENSOR_SEGMENTS = {
     'HEAD': 'Head',
 }
 
-# Axis labels
 AXES = ['X', 'Y', 'Z']
 
 # Dataset-specific subdirs under RAW_DIR
@@ -49,4 +47,5 @@ DATASET_ROOTS = {
     "HUGADB": join(RAW_DIR, "HUGADB"),
     "NEWBEE": join(RAW_DIR, "NEWBEE", "multi_modal_gait_database", "data_set"),
 }
+
 
