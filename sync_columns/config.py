@@ -25,10 +25,10 @@ SENSOR_SEGMENTS = {
     'R_SHANK': 'Right Shank (Lower Leg)',
     'L_THIGH': 'Left Thigh (Upper Leg)',
     'R_THIGH': 'Right Thigh (Upper Leg)',
-    'L_PELVIS': 'Left Pelvis / Hip',
-    'R_PELVIS': 'Right Pelvis / Hip',
     'PELVIS': 'Pelvis / Sacrum (midline)',
     'TRUNK': 'Trunk / Sternum / Chest',
+    'L_SHOULDER': 'Left Shoulder',
+    'R_SHOULDER': 'Right Shoulder',
     'L_ARM': 'Left Upper Arm',
     'R_ARM': 'Right Upper Arm',
     'L_FOREARM': 'Left Forearm',
@@ -49,3 +49,4 @@ DATASET_ROOTS = {
     "HUGADB": join(RAW_DIR, "HUGADB"),
     "NEWBEE": join(RAW_DIR, "NEWBEE", "multi_modal_gait_database", "data_set"),
 }
+
