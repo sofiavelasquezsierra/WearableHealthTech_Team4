@@ -5,6 +5,7 @@ Usage:
   python main.py HUGADB
   python main.py YARETA --dry-run
   python main.py HUGADB --index-col 0
+  python main.py HUGADB --sensor-only   # Drop EMG, activity, etc.; keep only sensor columns
 """
 
 import os
@@ -52,13 +53,18 @@ def apply_mapping_to_csv(
     mapping,
     output_path,
     index_col=None,
+    sensor_only=False,
 ):
-    """Read CSV, rename columns using mapping, save to output_path."""
+    """Read CSV, rename columns using mapping, optionally drop non-sensor columns, save to output_path."""
     read_kw = {} if index_col is None else {"index_col": index_col}
     df = pd.read_csv(input_path, **read_kw)
     # Only rename columns that exist in the dataframe and in the mapping
     rename_map = {c: mapping[c] for c in df.columns if c in mapping}
     df_renamed = df.rename(columns=rename_map)
+    if sensor_only:
+        # Keep only sensor columns (those we mapped); drop EMG, activity, Unnamed: 0, etc.
+        sensor_cols = [c for c in df_renamed.columns if c in rename_map.values()]
+        df_renamed = df_renamed[sensor_cols]
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     df_renamed.to_csv(output_path, index=False)
     return len(rename_map)
@@ -68,6 +74,7 @@ def convert_dataset(
     dataset_name,
     index_col=None,
     dry_run=False,
+    sensor_only=False,
 ):
     """Convert columns of ALL CSV files in the dataset using saved mapping."""
     dataset_key = dataset_name.upper()
@@ -96,6 +103,8 @@ def convert_dataset(
     print(f"  Mapping: {mapping_path}")
     print(f"  Root: {root}")
     print(f"  Output: {SYNCED_DIR}")
+    if sensor_only:
+        print(f"  {YELLOW}[SENSOR ONLY] Dropping non-sensor columns (EMG, activity, etc.){RESET}")
     if dry_run:
         print(f"  {YELLOW}[DRY RUN] No files will be written{RESET}")
     print()
@@ -113,7 +122,7 @@ def convert_dataset(
             continue
 
         try:
-            n = apply_mapping_to_csv(inp, mapping, out, index_col=index_col)
+            n = apply_mapping_to_csv(inp, mapping, out, index_col=index_col, sensor_only=sensor_only)
             total_mapped += n
             n_converted += 1
         except Exception as e:
@@ -143,12 +152,18 @@ def main():
         metavar="N",
         help="Use column N (0-based) as row index when reading CSV",
     )
+    parser.add_argument(
+        "--sensor-only",
+        action="store_true",
+        help="Drop non-sensor columns (EMG, activity, Unnamed: 0, etc.); keep only mapped sensor columns",
+    )
     args = parser.parse_args()
 
     convert_dataset(
         args.dataset,
         index_col=args.index_col,
         dry_run=args.dry_run,
+        sensor_only=args.sensor_only,
     )
 
 

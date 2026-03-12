@@ -13,7 +13,7 @@ Examples: `R_FOOT_ACC_X`, `L_THIGH_GYR_Z`, `PELVIS_MAG_Y`
 ## Dependencies
 
 ```bash
-pip install pandas openai tqdm
+pip install pandas openai tqdm matplotlib numpy
 ```
 
 Set `OPENAI_API_KEY` in your environment.
@@ -55,6 +55,22 @@ Or run all three with the helper script: `./run_get_mapping.sh`
 python main.py HUGADB
 python main.py YARETA --dry-run
 ```
+
+### Step 3: Validate transformation (visualization)
+
+After converting, run the validation script to confirm column mapping and data integrity:
+
+```bash
+python visualize_transformation.py HUGADB
+python visualize_transformation.py YARETA -o validation_yareta.png
+python visualize_transformation.py CAMARGO --sample "path/to/sample.csv" --index-col 0
+```
+
+This produces:
+- **Mapping panel**: raw column names → standard `SEGMENT_SENSOR_AXIS`
+- **Time-series overlay**: same signal from raw vs synced file (should overlap → values preserved)
+- **Coverage**: column counts by segment before vs after
+- **Summary**: quick check that mapped and synced column counts align
 
 ### Harmonize column names only (no CSV)
 
