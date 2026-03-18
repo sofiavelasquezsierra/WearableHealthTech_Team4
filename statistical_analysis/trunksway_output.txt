@@ -1,0 +1,126 @@
+--- Regression Results NEWBEE ---
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:     stride_variability   R-squared:                       0.054
+Model:                            OLS   Adj. R-squared:                  0.037
+Method:                 Least Squares   F-statistic:                     3.279
+Date:                Wed, 18 Mar 2026   Prob (F-statistic):             0.0754
+Time:                        13:31:00   Log-Likelihood:                -176.18
+No. Observations:                  60   AIC:                             356.4
+Df Residuals:                      58   BIC:                             360.6
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept     13.3036      2.347      5.669      0.000       8.607      18.001
+trunk_sway     0.2390      0.132      1.811      0.075      -0.025       0.503
+==============================================================================
+Omnibus:                       13.694   Durbin-Watson:                   1.720
+Prob(Omnibus):                  0.001   Jarque-Bera (JB):               14.905
+Skew:                           1.045   Prob(JB):                     0.000580
+Kurtosis:                       4.262   Cond. No.                         69.9
+==============================================================================
+
+
+--- Regression Results YARETA (all files) ---
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:     stride_variability   R-squared:                       0.001
+Model:                            OLS   Adj. R-squared:                 -0.011
+Method:                 Least Squares   F-statistic:                   0.06924
+Date:                Wed, 18 Mar 2026   Prob (F-statistic):              0.793
+Time:                        13:44:29   Log-Likelihood:                -348.10
+No. Observations:                  84   AIC:                             700.2
+Df Residuals:                      82   BIC:                             705.1
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept     17.4223      5.445      3.200      0.002       6.591      28.254
+trunk_sway    -2.4452      9.292     -0.263      0.793     -20.930      16.040
+==============================================================================
+Omnibus:                       38.067   Durbin-Watson:                   2.139
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               88.134
+Skew:                           1.624   Prob(JB):                     7.28e-20
+Kurtosis:                       6.825   Cond. No.                         7.27
+==============================================================================
+
+
+
+--- Regression Results YARETA ---
+--- Processed 140 Gait files ---
+--- Skipped 197 non-Gait files ---
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:     stride_variability   R-squared:                       0.085
+Model:                            OLS   Adj. R-squared:                  0.047
+Method:                 Least Squares   F-statistic:                     2.243
+Date:                Wed, 18 Mar 2026   Prob (F-statistic):              0.147
+Time:                        13:54:38   Log-Likelihood:                -90.606
+No. Observations:                  26   AIC:                             185.2
+Df Residuals:                      24   BIC:                             187.7
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept     20.4159      8.454      2.415      0.024       2.968      37.864
+trunk_sway   -22.5625     15.066     -1.498      0.147     -53.656       8.531
+==============================================================================
+Omnibus:                        8.284   Durbin-Watson:                   2.174
+Prob(Omnibus):                  0.016   Jarque-Bera (JB):                6.343
+Skew:                           1.114   Prob(JB):                       0.0419
+Kurtosis:                       3.943   Cond. No.                         12.2
+==============================================================================
+
+
+--- Regression Results: YARETA (Gait) & NEWBEE ---
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:     stride_variability   R-squared:                       0.357
+Model:                            OLS   Adj. R-squared:                  0.342
+Method:                 Least Squares   F-statistic:                     23.05
+Date:                Wed, 18 Mar 2026   Prob (F-statistic):           1.09e-08
+Time:                        14:01:04   Log-Likelihood:                -275.08
+No. Observations:                  86   AIC:                             556.2
+Df Residuals:                      83   BIC:                             563.5
+Df Model:                           2                                         
+Covariance Type:            nonrobust                                         
+========================================================================================
+                           coef    std err          t      P>|t|      [0.025      0.975]
+----------------------------------------------------------------------------------------
+Intercept               13.3979      3.052      4.390      0.000       7.327      19.469
+C(dataset)[T.YARETA]    -5.5395      3.189     -1.737      0.086     -11.882       0.802
+trunk_sway               0.2335      0.172      1.360      0.177      -0.108       0.575
+==============================================================================
+Omnibus:                       31.682   Durbin-Watson:                   1.882
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               62.032
+Skew:                           1.395   Prob(JB):                     3.39e-14
+Kurtosis:                       6.087   Cond. No.                         99.2
+==============================================================================
+
+--- Regression Results (CAMARGO) ---
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:     stride_variability   R-squared:                       0.014
+Model:                            OLS   Adj. R-squared:                  0.014
+Method:                 Least Squares   F-statistic:                     43.23
+Date:                Wed, 18 Mar 2026   Prob (F-statistic):           5.70e-11
+Time:                        15:37:57   Log-Likelihood:                -14579.
+No. Observations:                3041   AIC:                         2.916e+04
+Df Residuals:                    3039   BIC:                         2.917e+04
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept     66.2707      0.614    107.867      0.000      65.066      67.475
+trunk_sway    -1.9232      0.293     -6.575      0.000      -2.497      -1.350
+==============================================================================
+Omnibus:                      449.079   Durbin-Watson:                   1.389
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              837.346
+Skew:                           0.928   Prob(JB):                    1.49e-182
+Kurtosis:                       4.779   Cond. No.                         2.60
+==============================================================================
