@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Import Pyodide & Google Font-->
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WHT IMU Harmonization Pipeline</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  
+  <!-- Intro-->
+  <div>
+
+    <!-- Header: Intro Web-->
+    <section class="intro-bg">
+      <div style="width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 20px;">
+        <p class="team-headline">WHT Team 4</p>
+        <h1 class="main-title">IMU Data Harmonization</h1>
+        <p class="sub-headline">Struggling to integrate IMU datasets?<br><br>This pipeline helps standardize column names, align coordinate systems to the ISB standard, and remove gravity. Each step is adjustable, and the final output is a dataset normalized in g units.</p>
+        <br>
+      </div>
+    </section>
+
+    <!-- Section: Feature Grid-->
+    <section class="feature-bg">
+      <div>
+        <h2 class="feature-title">Our Process</h2>
+      </div>
+      <div class="features-grid" id="process-grid">
+        <div class="card" onclick="showInfo('naming', this)">
+          <div class="icon">🔍</div>
+          <h3>A. File Information Check</h3>
+        </div>
+        <div class="card" onclick="showInfo('structure', this)">
+          <div class="icon">📖</div>
+          <h3>B. Structural Harmonization</h3>
+        </div>
+        <div class="card" onclick="showInfo('coordinate', this)">
+          <div class="icon">📐</div>
+          <h3>C. Coordinate Standardization</h3>
+        </div>
+        <div class="card" onclick="showInfo('outcome', this)">
+          <div class="icon">💾</div>
+          <h3>D. Outcome & Execution</h3>
+        </div>
+
+        <!-- Shared Info Panel for both Desktop and Mobile -->
+        <div id="info-panel" class="info-panel">
+          <h3 id="panel-title"></h3>
+          <p id="panel-desc"></p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Section: Why Harmonize-->
+    <section class="why-harmonization-bg">
+      <div style="width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 20px;">
+        <h2 style="color:#fff;">Why Harmonize?</h2>
+        <p style="color:#fff; margin-bottom: 0;">
+          IMU datasets are often fragmented across studies due to differences in naming conventions, coordinate systems, sampling rates, and metadata structures. These inconsistencies prevent direct integration and limit large-scale analysis.
+          Harmonization transforms heterogeneous datasets into a unified framework, enabling consistent interpretation, dataset integration, and scalable modeling. By standardizing structure and coordinates, it becomes possible to combine multiple datasets and support more robust and generalizable biomechanical and machine learning applications.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section: Start the Process-->
+    <section class="start-process-bg">
+      <div class="process-container">
+        <h2>Run Pipeline in Your Browser</h2>
+        <p>Based on WebAssembly (Pyodide) technology, data processing is performed entirely on your local machine. Your data never leaves your browser. <a href="https://pyodide.com" target="_blank" style="color: #174871; text-decoration: underline;">More Info</a></p>
+        
+        <!-- Initial Action -->
+        <div id="initial-action" style="margin-top: 30px;">
+          <button class="btn btn-start" onclick="startApp()">Let's Try</button>
+        </div>
+
+        <!-- Pipeline Form (Hidden Initially) -->
+        <div id="pipeline-form" style="display: none; margin-top: 30px; text-align: left;">
+          <div id="status-console" class="status-box" style="margin-bottom: 25px;">
+            Waiting for initialization...
+          </div>
+
+          <!-- Group 1: Basic Info Check -->
+          <div id="phase-a-group" class="step-group active-phase">
+            <div class="step-badge">Phase A: File Information Check</div>
+            
+            <!-- Step 1: Upload (Moved to first for smart auto-fill) -->
+            <h3 style="color: #174871; margin-bottom: 15px;">1. Upload Dataset</h3>
+            <p style="font-size: 0.85rem; margin-bottom: 15px;">We recommend uploading a walking activity data, as it offers a more reliable reference for alignment.</p>
+            <div class="upload-area" style="margin-bottom: 25px;">
+              <input type="file" id="csv-upload" accept=".txt,.csv,.arff" style="display: none;" onchange="handleFileUpload(this)" disabled>
+              <button id="upload-btn" class="btn btn-start" style="margin: 0; width: 100%; opacity: 0.6; cursor: not-allowed;" onclick="document.getElementById('csv-upload').click()" disabled>Select Data File</button>
+              
+              <div id="upload-status-text" style="font-size: 0.85rem; margin-top: 10px; font-weight: 600; color: #174871; display: none;"></div>
+              <div id="progress-container" class="progress-container" style="display: none;">
+                <div id="progress-bar" class="progress-bar"></div>
+              </div>
+            </div>
+
+            <h3 style="color: #174871; margin-bottom: 5px;">2. File Information</h3>
+            <p style="font-size: 0.85rem; margin-bottom: 15px;">Metadata for identification. <b>Auto-filled</b> if filename matches: <i>p-01_s-01_a-walking</i></p>
+            <div class="input-group-grid">
+              <div class="form-group">
+                <label>Participant No.</label>
+                <input type="text" id="input-pid" placeholder="e.g. 01" value="">
+              </div>
+              <div class="form-group">
+                <label>Session</label>
+                <input type="text" id="input-session" placeholder="e.g. 01" value="">
+              </div>
+              <div class="form-group">
+                <label>Activity</label>
+                <input type="text" id="input-activity" placeholder="e.g. walking" value="">
+              </div>
+            </div>
+
+            <h3 style="color: #174871; margin-top: 25px; margin-bottom: 5px;">3. Processing Configuration</h3>
+            <p style="font-size: 0.85rem; margin-bottom: 15px;">Used for frequency calculations and gravity removal filters.</p>
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label>Sampling Rate (Hz)</label>
+              <input type="number" id="input-fs" placeholder="e.g. 100" value="100" style="max-width: 150px;">
+            </div>
+
+          </div> <!-- End Step Group -->
+
+          <div style="text-align: center; margin-top: 20px;">
+            <button class="btn" id="next-btn" disabled onclick="goToNextStep()" style="background: #ccc; cursor: not-allowed; width: 200px;">Confirm File Info</button>
+          </div>
+        </div>
+
+        <!-- Column Mapping Section (Hidden Initially) -->
+        <div id="mapping-section" class="step-group" style="display: none; margin-top: 30px; text-align: left;">
+          <div class="step-badge">Phase B: Structural Harmonization</div>
+          
+          <button id="back-to-form-btn" class="btn" onclick="goBackToForm()" style="background: #e2e8f0; color: #475569; min-width: 120px; font-size: 0.8rem; margin-bottom: 20px;">← Back to Edit</button>
+          
+          <h3 style="color: #174871; margin-bottom: 5px;">4. Column Synchronization</h3>
+          <p id="data-shape-info" style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px;"></p>
+
+          <div class="mapping-container">
+            <div class="mapping-header">
+              <span>Sync?</span>
+              <span>Raw Column Title</span>
+              <span>Mapping Configuration (Side | Segment | Sensor | Axis)</span>
+            </div>
+            <div id="mapping-rows">
+              <!-- Generated by JS -->
+            </div>
+          </div>
+
+          <div id="mapping-success-msg" style="display: none; background: #ecfdf5; border: 1px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #065f46; font-weight: 600;">
+            ✅ Structural harmonization complete.
+          </div>
+
+          <div id="mapping-actions" style="text-align: center; margin-top: 30px;">
+            <button class="btn btn-start" onclick="confirmMapping()">🔄 Update Column Name</button>
+          </div>
+        </div>
+
+        <!-- Phase C: Processing & Result (Hidden Initially) -->
+        <div id="result-section" class="step-group" style="display: none; margin-top: 30px; text-align: left;">
+          <button id="back-to-mapping-btn" class="btn" onclick="goBackToMapping()" style="background: #e2e8f0; color: #475569; min-width: 120px; font-size: 0.8rem; margin-bottom: 20px;">← Back to Sync</button>
+          
+          <div class="step-badge">Phase C: Coordinate Standardization</div>
+          <h3 style="color: #174871; margin-bottom: 5px;">5. Processing Status</h3>
+          <p id="result-status" style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px;">Columns have been synchronized. Ready for coordinate transformation and gravity removal.</p>
+
+          <!-- New: Sensor detection results display area -->
+          <div id="sensor-detection-output" style="margin-top: 20px; font-family: monospace; font-size: 0.85rem; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin-bottom: 15px; color: #174871;">Detected Sensors Metadata:</h4>
+            <table class="sensor-table" id="sensor-table">
+              <thead>
+                <tr>
+                  <th>Location (Segment)</th>
+                  <th>ACC Columns (X, Y, Z)</th>
+                  <th>GYR Columns (X, Y, Z)</th>
+                </tr>
+              </thead>
+              <tbody id="sensor-table-body">
+                <!-- Rows injected by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Initial Analysis Plots -->
+          <div id="initial-analysis-plots" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; margin-bottom: 30px;">
+            <div class="plot-item">
+              <h5 style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">
+                Initial Static Mean Acc
+              </h5>
+              <img id="initial-acc-img" class="analysis-img">
+            </div>
+            <div class="plot-item">
+              <h5 style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">
+                Initial PCA Variance
+              </h5>
+              <img id="initial-pca-img" class="analysis-img">
+            </div>
+          </div>
+
+          <!-- Coordinate Calibration UI -->
+          <div id="coordinate-calibration" style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 30px;">
+            <h3 style="color: #174871; margin-bottom: 20px;">6. Coordinate Rotation (ISB Standard)</h3>
+            <p id="result-status" style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px;">The system automatically estimates sensor orientation from the signal pattern. It identifies the gravity-related axis using accelerometer magnitude, then uses the remaining axes and gyroscope variation to infer the other directions. A rotation matrix is then constructed to align each sensor to the ISB standard.</p>
+            
+            <!-- Body Segments Group -->
+            <div class="calibration-group" style="margin-bottom: 40px;">
+                <div style="background: #174871; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: 600;">
+                    Standard: Body Segments (Non-foot)
+                </div>
+                <div style="background: #f1f5f9; padding: 10px 20px; font-size: 0.8rem; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                    Target ISB Frame: <b>X = Forward</b>, <b>Y = Up (Gravity)</b>, <b>Z = Right</b>
+                </div>
+                <div id="body-matrix-container" class="matrix-list-container" style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 0 0 8px 8px; background: #fff;">
+                    <!-- Body sensors injected here -->
+                </div>
+            </div>
+
+            <!-- Foot Segments Group -->
+            <div class="calibration-group">
+                <div style="background: #174871; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: 600;">
+                    Standard: Foot Segments
+                </div>
+                <div style="background: #f1f5f9; padding: 10px 20px; font-size: 0.8rem; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                    Target ISB Frame: <b>X = Up (Gravity)</b>, <b>Y = Backward</b>, <b>Z = Right</b>
+                </div>
+                <div id="foot-matrix-container" class="matrix-list-container" style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 0 0 8px 8px; background: #fff;">
+                    <!-- Foot sensors injected here -->
+                </div>
+            </div>
+          </div>
+
+          <!-- Sync Button -->
+          <div style="text-align: center; margin: 40px 0;">
+            <button class="btn btn-start" id="sync-preview-btn" onclick="syncAndPreviewRotation()" style="background: #174871; width: 280px;">🔄 Sync Coordinates</button>
+          </div>
+
+          <!-- Comparison Grid (Hidden initially) -->
+          <div id="sync-comparison-area" style="display: none;">
+            <button class="btn" onclick="goBackToCalibration()" style="background: #e2e8f0; color: #475569; min-width: 150px; font-size: 0.8rem; margin-bottom: 20px;">← Back to Coordination</button>
+
+            <h4 style="color: #174871; text-align: center; margin-bottom: 20px;">Verification: Before vs After Rotation</h4>
+            <div class="plots-grid" style="grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div class="plot-item">
+                    <h5>A. Static Mean Acc (Before)</h5>
+                    <img id="before-acc-img" class="analysis-img">
+                </div>
+                <div class="plot-item">
+                    <h5>B. PCA Variance (Before)</h5>
+                    <img id="before-pca-img" class="analysis-img">
+                </div>
+                <div class="plot-item">
+                    <h5>C. Static Mean Acc (After Sync)</h5>
+                    <img id="after-acc-img" class="analysis-img">
+                </div>
+                <div class="plot-item">
+                    <h5>D. PCA Variance (After Sync)</h5>
+                    <img id="after-pca-img" class="analysis-img">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div class="insight-box"><strong>Mean Acc Insight:</strong> After rotation, gravity is aligned with the target axis: Y for non-foot (body) segments and X for foot segments.</div>
+                <div class="insight-box"><strong>Variance Insight:</strong> Due to walking motion, after removing the gravity axis (Y), upper-body segments show greater variation along X, while lower-body segments show greater variation along Z.</div>
+            </div>
+
+            <div id="rotation-download-area" style="text-align: center; margin-top: 20px;">
+                <!-- Preview Download Button injected here -->
+            </div>
+
+            <!-- Gravity Configuration (Now appears after sync) -->
+            <div class="step-group" style="margin-top: 40px; background: #f0fdf4; border-color: #bbf7d0;">
+               <h3 style="color: #174871; margin-bottom: 15px;">7. Gravity Removal</h3>
+               <p style="font-size: 0.85rem; margin-bottom: 15px;">Specify local gravity units and apply a complementary filter to extract linear acceleration.</p>
+               <div class="input-group-grid" style="grid-template-columns: 1fr 1fr;">
+                  <div class="form-group">
+                    <label>Gravity Constant (G)</label>
+                    <select id="grav-const-select">
+                      <option value="1.0">1.0 (Unit: g)</option>
+                      <option value="9.80665">9.80665 (Unit: m/s²)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="justify-content: center; padding-top: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                      <input type="checkbox" id="toggle-grav-removal" checked style="width: 20px; height: 20px; margin-right: 10px;">Apply Gravity Removal
+                    </label>
+                  </div>
+               </div>
+               
+               <div style="text-align: center; margin-top: 30px;">
+                  <button class="btn btn-start" onclick="applyFinalProcessAndExport()">🔄 Apply Gravity Removal</button>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase D: Final Download (Simplified) -->
+        <div id="final-section" class="step-group" style="display: none; margin-top: 30px; text-align: center;">
+           <div class="step-badge">Phase D: Outcome & Batch Execution</div>
+           <h3 style="color: #174871;">Harmonization & Filtering Complete</h3>
+           
+           <!-- Final Verification Plot -->
+           <div id="final-verification-area" style="margin-top: 30px;">
+              <div id="final-plots-container" style="display: flex; flex-direction: column; gap: 40px;">
+                  <!-- Individual segment plots will be injected here -->
+              </div>
+              <div class="insight-box" style="margin-top: 15px; text-align: left; border-left-color: #3b82f6;">
+                <strong>Processing Insight:</strong> 
+                Note: All output acceleration data has been normalized to <b>g units</b> (1g ≈ 9.81 m/s²).<br>
+                The comparison bars (top) show that the static gravitational component has been removed, bringing the mean acceleration to ~0g. 
+                The waveform (bottom) represents the clean linear acceleration used for activity feature extraction.
+              </div>
+           </div>
+
+           <div id="final-download-area" style="margin-top: 30px;"></div>
+
+           <!-- Batch Processing sub-section inside Phase D -->
+           <div id="batch-section" style="display: none; margin-top: 40px; padding-top: 30px; border-top: 2px dashed #e2e8f0; text-align: left;">
+              <h3 style="color: #174871; margin-bottom: 15px;">8. Batch Processing</h3>
+              <p style="font-size: 0.85rem; margin-bottom: 20px;">
+                Apply the confirmed synchronization and standardization settings to multiple files in a folder. All files must follow the same sensor configuration.
+                <br><small>Note: Please make sure all files are properly renamed before uploading.</small>
+              </p>
+
+              <div class="input-group-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                  <label>Input Folder (Raw CSVs)</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="text" id="batch-input-path" placeholder="No folder selected" readonly style="flex: 1; background: #f1f5f9;">
+                    <button class="btn" onclick="selectBatchFolder('input')" style="margin: 0; min-width: 80px; padding: 8px; font-size: 0.8rem;">Select</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Output Folder (Results)</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="text" id="batch-output-path" placeholder="No folder selected" readonly style="flex: 1; background: #f1f5f9;">
+                    <button class="btn" onclick="selectBatchFolder('output')" style="margin: 0; min-width: 80px; padding: 8px; font-size: 0.8rem;">Select</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="text-align: center; margin-top: 30px;">
+                <button id="run-batch-btn" class="btn" disabled onclick="runBatchProcessing()" style="background: #ccc; cursor: not-allowed; width: 250px;">Run Batch Processing</button>
+              </div>
+
+              <div id="batch-console" class="status-box" style="margin-top: 25px; display: none; max-height: 250px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; font-size: 0.8rem;">
+              </div>
+           </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; flex-direction: column; justify-content: center; align-items: center;">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; font-weight: 600; color: #174871;">Processing Data...</p>
+  </div>
+
+  <style>
+    /* --- Layout & Global Styles --- */
+    .process-container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 80px 20px 50px 20px; }
+    .input-group-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: #174871; margin-bottom: 5px; }
+    .form-group input { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.95rem; }
+    
+    /* Progress & Loading UI */
+    .progress-container { width: 100%; background-color: #e2e8f0; border-radius: 10px; margin-top: 15px; height: 10px; overflow: hidden; }
+    .progress-bar { width: 0%; height: 100%; background-color: #38bdf8; transition: width 0.3s ease; }
+    
+    .status-box { 
+      background: #f8fafc; color: #475569; padding: 15px 20px; 
+      border-radius: 10px; text-align: left; font-family: 'Inter', sans-serif; 
+      font-size: 0.9rem; border: 1px solid #e2e8f0; transition: all 0.3s ease;
+    }
+
+    /* --- Phase B: Mapping UI Styles --- */
+    .mapping-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .mapping-header { display: grid; grid-template-columns: 60px 1.2fr 2fr; background: #f1f5f9; padding: 10px 20px; font-weight: 600; font-size: 0.85rem; color: #174871; }
+    .mapping-row { display: grid; grid-template-columns: 60px 1.2fr 2fr; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+    .mapping-row:last-child { border-bottom: none; }
+    .mapping-row span { font-family: monospace; font-size: 0.9rem; color: #334155; }
+    .mapping-select-group { display: flex; gap: 5px; }
+    .mapping-select-group select { padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.8rem; flex: 1; }
+
+    /* --- Phase C: Processing & Analysis Styles --- */
+    .plots-grid { display: grid; gap: 20px; margin-top: 20px; }
+    .plot-item h5 { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+    .analysis-img { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .insight-box { background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 0.8rem; border-left: 4px solid #10b981; }
+
+    .matrix-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 15px; }
+    .matrix-grid { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 10px; align-items: center; }
+
+    /* Sensor Table Styles */
+    .sensor-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    .sensor-table th { background: #f1f5f9; color: #174871; text-align: left; padding: 12px; font-size: 0.8rem; border-bottom: 2px solid #e2e8f0; }
+    .sensor-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.8rem; color: #475569; }
+    .sensor-table tr:last-child td { border-bottom: none; }
+
+    /* Data Visualization Grid */
+    .plots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .analysis-img { width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .insight-box { margin-top: 10px; font-size: 0.75rem; color: #475569; background: #f8fafc; padding: 10px; border-radius: 6px; line-height: 1.4; border-left: 3px solid #10b981; }
+    
+    /* Sensor Calibration Interface */
+    .matrix-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 15px; }
+    .matrix-grid { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 10px; align-items: center; margin-top: 10px; }
+    .matrix-header-label { font-size: 0.75rem; font-weight: 600; color: #64748b; text-align: center; }
+
+    /* Plot Legend Overlays */
+    .plot-item { position: relative; }
+    .axis-legend { 
+      position: absolute; 
+      top: 35px; right: 10px; 
+      background: rgba(255, 255, 255, 0.9); 
+      border: 1px solid #cbd5e1; 
+      padding: 4px 10px; 
+      border-radius: 6px; 
+      display: flex; gap: 12px; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      z-index: 5;
+    }
+    .axis-legend span { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #475569; }
+    .axis-legend span::before {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+    .legend-x::before { background-color: red; }
+    .legend-y::before { background-color: blue; }
+    .legend-z::before { background-color: green; }
+
+    /* --- Pipeline Phase Containers --- */
+    .step-group {
+      background: #fdfdfd;
+      border: 2px solid #e2e8f0; /* Default gray border */
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      position: relative;
+      transition: border-color 0.3s ease;
+    }
+    .step-badge {
+      position: absolute;
+      top: -12px; left: 20px;
+      background: #174871; color: white;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Active Phase Highlighting (Magenta) */
+    div.step-group.active-phase {
+      border-color: #985672 !important;
+    }
+    div.step-group.active-phase .step-badge {
+      background: #985672 !important;
+    }
+
+    /* Spinner Styles */
+    .spinner {
+      width: 50px; height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #985672;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .footer-bg { background-color: #334155; color: #fff; padding: 40px 20px; text-align: center; width: 100%; margin-top: 50px; }
+    .footer-bg p { color: #cbd5e1; margin-bottom: 8px; font-size: 0.85rem; line-height: 1.5; }
+    .footer-disclaimer { font-size: 0.75rem; opacity: 0.7; margin-top: 15px; font-style: italic; }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      .input-group-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+  
+  <style>
+    /* Ensure the wrapper div takes full width */
+    body > div { width: 100%; }
+  </style>
+
+  <!-- Footer Section -->
+  <footer class="footer-bg">
+    <div style="max-width: 1000px; margin: 0 auto; padding: 0 20px;">
+        <p class="footer-disclaimer">Thank you for using our tool! This tool is intended for research and educational purposes only.</p><br>
+      <p>Carnegie Mellon University | Spring 2026 Wearable Health Technologies</p>
+      <p>Instructor: Eni Halilaj | TA: Jimin An | Team 4: April Lin, Chaeeun Lee, Emily Allendorf, Irene Lin, Parth Burujwale, Sofia Velasquez Sierra</p>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+<style>
+/* Standard CSS tags should be <style> */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    flex-direction: column;
+    align-items: center;
+}
+
+p { 
+  color: #4c4c4c; 
+  font-size: 1rem; 
+}
+
+h2{
+  font-family: 'Verdana', serif;
+  font-weight: bold;
+    color: #174871;
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 40px;
+  text-align: center;
+}
+
+
+
+/* Header */
+
+.intro-bg{
+  display: flex;
+  background: linear-gradient(135deg, #174871 -10%, #985672 40%, #A77693 80%,#DED1C6 120%);
+  width: 100%;
+  justify-content: center;
+  height: auto;
+  text-align: center;
+}
+
+.team-headline{
+  color: #ffffff; 
+  font-size: 1rem;
+  margin-top: 20px;
+}
+
+.main-title {
+    font-family: 'Verdana', serif;
+    color: #ffffff;
+    font-size: 3rem;
+    margin-top: 100px;
+    margin-bottom: 50px;
+}
+
+.sub-headline { 
+  color: #ffffff; 
+  font-size: 1rem; 
+  margin-bottom: 100px;
+}
+
+/* Feature Cards (Responsive) */
+
+.feature-bg{
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 80px 20px;
+}
+
+.feature-title{
+  font-family: 'Verdana', serif;
+  font-weight: bold;
+    color: #174871;
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 40px;
+  text-align: center;
+}
+
+.features-grid {
+    display: grid;
+    /* Use fixed column counts to prevent cards from shrinking when the panel opens */
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 50px;
+      margin-bottom: 0;
+    width: 100%;
+}
+
+/* Responsive Grid Breakpoints */
+@media (max-width: 1024px) {
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+    .features-grid { grid-template-columns: 1fr; }
+}
+
+.card {
+    background: #f8fafc;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Keep border at 2px always to prevent size-shifting on click/hover */
+    border: 2px solid #e2e8f0;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    border: 2px solid #174871;
+}
+.card .icon { font-size: 1.8rem; margin-bottom: 15px; }
+.card h3 { font-size: 1rem; color: #174871; margin-bottom: 8px; }
+.card p { font-size: 0.85rem; color: #64748b; line-height: 1.4; }
+.card.active { border: 2px solid #174871; background: #fff; }
+
+/* Expansion Panel */
+.info-panel {
+    display: none;
+    grid-column: 1 / -1;
+    background: #f1f5f9;
+    padding: 30px;
+    border-radius: 12px;
+    border-left: 6px solid #174871;
+    text-align: left;
+    margin-top: 10px;
+    animation: fadeIn 0.4s ease;
+}
+.info-panel h3 { color: #174871; margin-bottom: 10px; font-size: 1.2rem; }
+.info-panel p { color: #475569; line-height: 1.6; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Why Harmonize */
+
+.why-harmonization-bg{
+  display: flex;
+  flex-direction: column;
+  background: #174871;
+  width: 100%;
+  align-items: center;
+  padding: 80px 0;
+  height: auto;
+}
+
+/* Start the Process */
+
+.start-process-bg{
+  display: flex;
+  background: #fff;
+  width: 100%;
+  justify-content: center;
+  height: auto;
+  text-align: center;
+}
+
+/* Button Styles */
+.mode-selection { text-align: center; padding-top: 40px; }
+.btn {
+    padding: 12px 24px;
+    font-weight: 600;
+  font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 10px;
+    min-width: 150px;
+    transition: 0.2s;
+    border: none;
+    background: #174871;
+    color: white;
+}
+.btn-start { background: #174871; color: white;}
+.btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+</style>
+
+<script>
+/**
+ * Handle card click details (Expansion Panel)
+ */
+function showInfo(type, element) {
+    const panel = document.getElementById('info-panel');
+    const title = document.getElementById('panel-title');
+    const desc = document.getElementById('panel-desc');
+    const grid = document.getElementById('process-grid');
+    const cards = document.querySelectorAll('.card');
+
+    // Check if the clicked card is already active
+    const isActive = element.classList.contains('active');
+
+    // Reset active state for all cards
+    cards.forEach(c => c.classList.remove('active'));
+
+    if (isActive) {
+        // If it was already active, hide the panel and stop execution
+        panel.style.display = "none";
+        return;
+    }
+
+    const info = {
+        naming: ["1. File Information Check", "We begin by processing a single dataset step by step. Simply upload one file and enter its participant, session, and activity information. The system will automatically rename the file using a standardized format (e.g., p-01_s-01_a-walking)."],
+        structure: ["2. Structural Harmonization", "Different datasets often use inconsistent column naming conventions. This pipeline allows users to map each column to a standardized template (e.g., L_FOOT_ACC_X), ensuring consistent data structure."],
+        coordinate: ["3. Coordinate Standardization", "Since sensor orientations differ across devices, the system identifies the correct coordinate alignment based on the ISB standard. It applies rotation, removes gravity, and converts all data into g units."],
+        outcome: ["4. Outcome & Execution", "After processing, the pipeline provides visualizations to illustrate results. Users can then apply the same configuration to multiple files within a folder, enabling scalable data processing."]
+    };
+
+    // Set active state for the newly selected card
+    element.classList.add('active');
+    // Update Content
+    title.innerText = info[type][0];
+    desc.innerText = info[type][1];
+
+    // Responsive Logic: Move the panel in the DOM
+    if (window.innerWidth <= 768) {
+        // Mobile: Move panel directly after the clicked card
+        element.after(panel);
+    } else {
+        // Desktop: Always keep at the bottom of the grid
+        grid.appendChild(panel);
+    }
+
+    panel.style.display = "block";
+    
+    // Smooth scroll to panel
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Pyodide Initialization Logic
+ */
+let pyodide;
+let pyodideReady = false;
+let fileUploaded = false;
+let uploadedFileContent = null;
+let uploadedFileName = "";
+let beforeAccImgB64 = "";
+let beforePcaImgB64 = "";
+
+/**
+ * Entry point: Switches UI to Phase A and starts Pyodide download.
+ */
+async function startApp() {
+    // Show form, hide start button
+    document.getElementById('initial-action').style.display = 'none';
+    document.getElementById('pipeline-form').style.display = 'block';
+    
+    // Ensure Phase A is active during initialization (magenta)
+    document.getElementById('phase-a-group').classList.add('active-phase');
+    
+    // Auto-scroll to Phase A immediately
+    document.getElementById('pipeline-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Start Pyodide init
+    await initPyodide();
+}
+
+/**
+ * Bootstraps the Python environment in the browser.
+ */
+async function initPyodide() {
+    const statusEle = document.getElementById('status-console');
+    const fileInput = document.getElementById('csv-upload');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    try {
+        statusEle.innerText = "🔄 Initializing Python Environment (Downloading Pandas/NumPy/Matplotlib)...";
+        pyodide = await loadPyodide();
+        await pyodide.loadPackage(["pandas", "numpy", "matplotlib"]);
+        
+        statusEle.innerText = "✅ System Ready. Enter Sampling Rate and Upload CSV.";
+        statusEle.style.color = "#27ae60";
+        statusEle.style.background = "#ebfaef";
+        statusEle.style.borderColor = "#27ae60";
+        
+        // Enable interactions
+        if (!fileUploaded) fileInput.disabled = false;
+        uploadBtn.disabled = false;
+        uploadBtn.style.opacity = "1";
+        uploadBtn.style.cursor = "pointer";
+        
+        pyodideReady = true;
+        checkReadyState();
+    } catch (err) {
+        statusEle.innerText = "❌ Error loading Python environment.";
+        statusEle.style.color = "#e74c3c";
+        console.error(err);
+    }
+}
+
+/**
+ * Handles CSV file ingestion, auto-detects metadata from the filename,
+ * and reads content for the Python runtime.
+ */
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Auto-detect metadata from filename: p-{pid}_s-{session}_a-{activity}
+    const nameMatch = file.name.match(/^p-(.+)_s-(.+)_a-(.+)\.csv$/i);
+    if (nameMatch) {
+        document.getElementById('input-pid').value = nameMatch[1];
+        document.getElementById('input-session').value = nameMatch[2];
+        document.getElementById('input-activity').value = nameMatch[3];
+    }
+
+    uploadedFileName = file.name;
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const statusText = document.getElementById('upload-status-text');
+
+    // Read file for Pyodide
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        uploadedFileContent = e.target.result;
+    };
+    reader.readAsText(file);
+
+    statusText.style.display = 'block';
+    statusText.innerText = "Uploading file: " + file.name + "...";
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    
+    // Simulate local upload progress
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += 10;
+        progressBar.style.width = progress + '%';
+        if (progress >= 100) {
+            clearInterval(interval);
+            statusText.innerText = "✅ Upload Complete: " + file.name;
+            statusText.style.color = "#27ae60";
+            fileUploaded = true;
+            checkReadyState();
+        }
+    }, 50);
+}
+
+function checkReadyState() {
+    const nextBtn = document.getElementById('next-btn');
+    if (pyodideReady && fileUploaded) {
+        nextBtn.disabled = false;
+        nextBtn.style.background = "#174871"; 
+        nextBtn.style.cursor = "pointer";
+        nextBtn.innerText = "Confirm File Info";
+    }
+}
+
+/**
+ * Transitions from Phase A to Phase B: Parses CSV headers and prepares mapping UI.
+ */
+async function goToNextStep() {
+    if (!pyodideReady || !uploadedFileContent) return;
+
+    const nextBtn = document.getElementById('next-btn');
+    const loading = document.getElementById('loading-overlay');
+    const fs = document.getElementById('input-fs').value;
+    const pid = document.getElementById('input-pid').value;
+    const sid = document.getElementById('input-session').value;
+    const act = document.getElementById('input-activity').value;
+
+    if (!pid || !sid || !act) {
+        alert("Please fill in all participant and session details.");
+        return;
+    } else if (isNaN(fs)) { // Add validation for sampling rate
+        alert("Please enter a valid number for Sampling Rate.");
+        return;
+    }
+
+    // Show Loading Overlay
+    loading.style.display = 'flex';
+    nextBtn.disabled = true;
+
+    // Disable Form Section instead of hiding it
+    const formElements = document.querySelectorAll('#pipeline-form input, #pipeline-form button:not(#next-btn)');
+    formElements.forEach(el => el.disabled = true);
+    document.getElementById('pipeline-form').style.opacity = "0.7";
+    document.getElementById('next-btn').style.display = "none";
+
+    // Toggle Active style: A -> B
+    document.getElementById('phase-a-group').classList.remove('active-phase');
+    document.getElementById('mapping-section').classList.add('active-phase');
+
+    // Use Pyodide to parse columns
+    pyodide.FS.writeFile("input.csv", uploadedFileContent);
+    const result = await pyodide.runPythonAsync(`
+import pandas as pd
+df = pd.read_csv("input.csv")
+cols = df.columns.tolist()
+shape = df.shape
+(cols, shape)
+    `);
+    
+    const columns = result.toJs()[0];
+    const shape = result.toJs()[1];
+
+    loading.style.display = 'none';
+    document.getElementById('mapping-section').style.display = 'block';
+    document.getElementById('data-shape-info').innerText = `Detected ${shape[0]} rows and ${shape[1]} columns in "${uploadedFileName}".`;
+
+    // Auto-scroll to mapping section
+    setTimeout(() => {
+        document.getElementById('mapping-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    populateMappingTable(columns);
+}
+
+function goBackToForm() {
+    // Re-enable Form Section
+    const formElements = document.querySelectorAll('#pipeline-form input, #pipeline-form button');
+    formElements.forEach(el => el.disabled = false);
+    document.getElementById('pipeline-form').style.opacity = "1";
+    document.getElementById('next-btn').style.display = "inline-block";
+    
+    // Toggle Active style: B -> A
+    document.getElementById('mapping-section').classList.remove('active-phase');
+    document.getElementById('phase-a-group').classList.add('active-phase');
+
+    // Hide Mapping Section
+    document.getElementById('mapping-section').style.display = 'none';
+    document.getElementById('pipeline-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Transitions back from Phase C to Phase B: Unlocks mapping UI for editing.
+ */
+function goBackToMapping() {
+    // Re-enable Phase B UI
+    document.getElementById('mapping-section').style.opacity = "1";
+
+    // Toggle Active style: C -> B
+    document.getElementById('result-section').classList.remove('active-phase');
+    document.getElementById('mapping-section').classList.add('active-phase');
+
+    // Show Phase B's back button again
+    document.getElementById('back-to-form-btn').style.display = 'inline-block';
+
+    // Hide success message and restore the original harmonize button
+    document.getElementById('mapping-success-msg').style.display = 'none';
+    document.getElementById('mapping-actions').innerHTML = `<button class="btn btn-start" onclick="confirmMapping()">🔄 Update Column Name</button>`;
+
+    const mappingInputs = document.querySelectorAll('#mapping-section select, #mapping-section input');
+    mappingInputs.forEach(el => {
+        el.disabled = false;
+        // Safe check: Only enforce row-level disabling if the element is inside a mapping row
+        const row = el.closest('.mapping-row');
+        if (row && el.tagName === 'SELECT') {
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            if (checkbox && !checkbox.checked) el.disabled = true;
+        }
+        if (el.type === 'checkbox') el.style.cursor = 'pointer';
+    });
+
+    // Reset sub-sections inside Phase C to ensure a clean state next time
+    document.getElementById('sync-comparison-area').style.display = 'none';
+
+    // Hide Phase C
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('mapping-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function toggleRowMapping(checkbox) {
+    const row = checkbox.closest('.mapping-row');
+    const selects = row.querySelectorAll('select');
+    selects.forEach(select => select.disabled = !checkbox.checked);
+}
+
+/**
+ * Core UI logic: Analyzes CSV column names using Regex to guess:
+ * - Side (L/R)
+ * - Segment (Foot, Shank, etc.)
+ * - Sensor Type & Axis
+ */
+function populateMappingTable(columns) {
+    const container = document.getElementById('mapping-rows');
+    container.innerHTML = "";
+
+    const segments = ["-", "FOOT", "SHANK", "THIGH", "PELVIS", "TRUNK", "HEAD", "ARM", "FOREARM", "HAND", "SHOULDER"];
+    const sensors = ["-", "ACC", "GYR", "MAG"];
+    const axes = ["-", "X", "Y", "Z"];
+    const sides = ["-", "L", "R"];
+
+    // 1. Smart Grouping Logic: Group columns by Segment (known or unknown) and Side
+    const groups = {};
+    // Priority-based matching list: longest names first to prevent partial matches (e.g., ARM vs FOREARM)
+    const knownSegments = ["SHOULDER", "FOREARM", "SHANK", "THIGH", "PELVIS", "TRUNK", "FOOT", "HAND", "HEAD", "ARM"];
+
+    columns.forEach(col => {
+        const upCol = col.toUpperCase();
+        
+        // Detect Side (L/R) using regex to avoid catching 'R' in 'GYR', 'MAG', or 'ACCELEROMETER'
+        const isLeft = /(^|[._-])L([._-]|$)|LEFT/i.test(col);
+        const isRight = /(^|[._-])R([._-]|$)|RIGHT/i.test(col);
+        const sidePrefix = isLeft ? "L_" : (isRight ? "R_" : "");
+        
+        // Try to find a match in the known standardized segments list
+        // Strict check: Ensure the segment name is a discrete word/part and not part of another word (like HEADER)
+        const foundSeg = knownSegments.find(s => {
+            const segRegex = new RegExp(`(^|[._-])${s}([._-]|$)`, 'i');
+            const isHeader = /HEADER/i.test(upCol);
+            // Explicitly prevent "Header" from being identified as "Head"
+            if (s === "HEAD" && isHeader) return false;
+            return segRegex.test(upCol);
+        });
+        
+        let groupKey;
+        if (foundSeg) {
+            groupKey = (sidePrefix + foundSeg).toUpperCase();
+        } else {
+            // For unknown segments (e.g., "Shin"), extract a "core" name.
+            // We strip out side words, full sensor words (accelerometer/gyroscope/header), 
+            // shorthand (acc/gyr), and the trailing axis.
+            let core = col.replace(/LEFT|RIGHT|(^|[._-])[LR]([._-]|$)/gi, '')
+                           .replace(/accelerometer|gyroscope|magnetometer|header|accel|acc|gyr|mag/gi, '')
+                           .replace(/[._-]?[XYZ]$/i, '')
+                           .replace(/[._-]+/g, '_') // Standardize separators
+                           .replace(/^(_|[._-])+|(_|[._-])+$/g, ''); 
+            groupKey = (sidePrefix + (core || "Other")).toUpperCase();
+        }
+        
+        if (!groups[groupKey]) groups[groupKey] = [];
+        groups[groupKey].push(col);
+    });
+
+    // 2. Render each group
+    Object.entries(groups).forEach(([groupName, groupCols], groupIdx) => {
+        const groupId = `group-${groupIdx}`;
+        
+        // Guess the segment for this specific section from the known list
+        const upGroupName = groupName.toUpperCase();
+        // Use sorted list for safe guessing (e.g., FOREARM won't match ARM)
+        const sortedSegmentsForGuess = [...segments].sort((a, b) => b.length - a.length);
+        let guessedSeg = sortedSegmentsForGuess.find(s => {
+            if (s === "-" || s === "") return false;
+            const segRegex = new RegExp(`(^|[._-])${s}([._-]|$)`, 'i');
+            if (s === "HEAD" && /HEADER/i.test(upGroupName)) return false;
+            return segRegex.test(upGroupName);
+        }) || "-";
+
+        // Insert Section Header Row
+        const groupHeader = document.createElement('div');
+        groupHeader.style = `
+            background: #cbd5e1; 
+            padding: 10px 20px; 
+            font-weight: 700; 
+            font-size: 0.85rem; 
+            color: #1e293b; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-top: ${groupIdx === 0 ? 'none' : '2px solid #cbd5e1'};
+        `;
+        groupHeader.innerHTML = `
+            <span>SEGMENT: ${groupName}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 400; font-size: 0.75rem; color: #64748b;">Set Segment for this section:</span>
+                <select onchange="applySegmentToGroup(this, '${groupId}')" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #94a3b8; font-size: 0.75rem;">
+                    ${segments.map(s => `<option value="${s}" ${s === guessedSeg ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+            </div>
+        `;
+        container.appendChild(groupHeader);
+
+        // Insert individual column rows for this group
+        groupCols.forEach(col => {
+            const row = document.createElement('div');
+            row.className = 'mapping-row';
+            row.setAttribute('data-group-id', groupId);
+            
+            const upCol = col.toUpperCase();
+            
+            // Improved Side Detection: Uses Regex to find 'L' or 'R' as distinct markers.
+            // This prevents the 'R' in 'GYR' from being detected as the 'Right' side.
+            const isLeft = /(^|[._-])L([._-]|$)|LEFT/i.test(col);
+            const isRight = /(^|[._-])R([._-]|$)|RIGHT/i.test(col);
+            let guessedSide = isLeft ? "L" : (isRight ? "R" : "-");
+
+            let guessedSensor = upCol.includes("ACC") ? "ACC" : (upCol.includes("GYR") ? "GYR" : (upCol.includes("MAG") ? "MAG" : "-"));
+            let guessedAxis = upCol.endsWith("_X") || upCol.includes("X-") ? "X" : (upCol.endsWith("_Y") || upCol.includes("Y-") ? "Y" : (upCol.endsWith("_Z") || upCol.includes("Z-") ? "Z" : "-"));
+
+            row.innerHTML = `
+                <input type="checkbox" checked onchange="toggleRowMapping(this)" style="cursor: pointer;">
+                <span>${col}</span>
+                <div class="mapping-select-group">
+                    <select class="map-side">${sides.map(s => `<option value="${s}" ${s === guessedSide ? 'selected' : ''}>${s}</option>`).join('')}</select>
+                    <select class="map-seg">${segments.map(s => `<option value="${s}" ${s === guessedSeg ? 'selected' : ''}>${s}</option>`).join('')}</select>
+                    <select class="map-sens">${sensors.map(s => `<option value="${s}" ${s === guessedSensor ? 'selected' : ''}>${s}</option>`).join('')}</select>
+                    <select class="map-axis">${axes.map(s => `<option value="${s}" ${s === guessedAxis ? 'selected' : ''}>${s}</option>`).join('')}</select>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    });
+}
+
+/**
+ * Synchronizes the Segment selection from a group header to all rows within that group.
+ */
+function applySegmentToGroup(selectElement, groupId) {
+    const targetValue = selectElement.value;
+    const rows = document.querySelectorAll(`.mapping-row[data-group-id="${groupId}"]`);
+    rows.forEach(row => {
+        const segSelect = row.querySelector('.map-seg');
+        if (segSelect) segSelect.value = targetValue;
+    });
+}
+
+/**
+ * Finalizes column synchronization. Executes a Python script to:
+ * 1. Rename columns 2. Identify 3-axis sensors 3. Guess initial orientations.
+ */
+async function confirmMapping() {
+    const rows = document.querySelectorAll('.mapping-row');
+    let mapping = {};
+    
+    rows.forEach(row => {
+        const isChecked = row.querySelector('input[type="checkbox"]').checked;
+        // Skip if user explicitly unchecked this column for synchronization
+        if (!isChecked) return;
+
+        const colName = row.querySelector('span').innerText;
+        const side = row.querySelector('.map-side').value;
+        const seg = row.querySelector('.map-seg').value;
+        const sens = row.querySelector('.map-sens').value;
+        const axis = row.querySelector('.map-axis').value;
+
+        if (seg !== "-" && sens !== "-" && axis !== "-") {
+            const prefix = side !== "-" ? `${side}_` : "";
+            mapping[colName] = `${prefix}${seg}_${sens}_${axis}`;
+        }
+    });
+
+    if (Object.keys(mapping).length === 0) {
+        alert("Please map at least one column before proceeding.");
+        return;
+    }
+
+    const loading = document.getElementById('loading-overlay');
+    loading.style.display = 'flex'; // Show loading overlay
+
+    try {
+        // Pass the mapping object to Python
+        pyodide.globals.set("col_mapping", pyodide.toPy(mapping));
+        pyodide.globals.set("user_pid", document.getElementById('input-pid').value);
+        pyodide.globals.set("user_sid", document.getElementById('input-session').value);
+        pyodide.globals.set("user_act", document.getElementById('input-activity').value);
+        
+        const pythonResult = await pyodide.runPythonAsync(`
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
+from mpl_toolkits.mplot3d import Axes3D
+
+# Rename columns
+df_harmonized = df.rename(columns=col_mapping)
+
+# Safety check: Remove duplicate column names if user mapped multiple raw columns to the same target
+df_harmonized = df_harmonized.loc[:, ~df_harmonized.columns.duplicated()]
+
+def build_sensors_from_prefixes(df, prefixes, patterns):
+    cols_in_df = set(df.columns)
+    res = {}
+    for pref in prefixes:
+        a_c = tuple(s.format(p=pref) for s in patterns["acc"])
+        if not all(c in cols_in_df for c in a_c): continue
+        g_c = tuple(s.format(p=pref) for s in patterns.get("gyr", ()))
+        g_ok = len(g_c) == 3 and all(c in cols_in_df for c in g_c)
+        res[pref] = {"acc": a_c, "gyr": g_c if g_ok else None}
+    return res
+
+def get_plot_b64(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buf.getvalue()).decode('utf-8') if buf.getvalue() else ""
+
+COL_PATTERNS = dict(acc=("{p}_ACC_X","{p}_ACC_Y","{p}_ACC_Z"), gyr=("{p}_GYR_X","{p}_GYR_Y","{p}_GYR_Z"))
+
+# Improved prefix detection to avoid partial matches
+all_prefixes = sorted({c.split("_ACC_")[0] for c in df_harmonized.columns if "_ACC_" in c})
+SENSORS = build_sensors_from_prefixes(df_harmonized, all_prefixes, COL_PATTERNS)
+
+if not SENSORS:
+    raise ValueError("No valid 3-axis sensors (X, Y, Z) were detected. Please ensure all three axes are mapped correctly.")
+
+sensors_list = list(SENSORS.keys())
+sensor_guesses = {}
+for s in sensors_list:
+    acc_cols = list(SENSORS[s]["acc"])
+    acc_series = df_harmonized[acc_cols].mean()
+    acc_data = acc_series.to_numpy()
+    
+    if acc_data.size != 3:
+        continue
+        
+    abs_means = np.abs(acc_data)
+    idx_sort = np.argsort(abs_means)
+    
+    i_max = int(idx_sort[-1]) 
+    s_max = -1.0 if acc_data[i_max] > 0 else 1.0
+    
+    is_foot = "FOOT" in s.upper()
+    if SENSORS[s]["gyr"]:
+        gyr_std = df_harmonized[list(SENSORS[s]["gyr"])].std().to_numpy()
+        gyr_std[i_max] = 0 # Exclude gravity axis
+        i_z = int(np.nanargmax(gyr_std)) if not np.all(np.isnan(gyr_std)) else int(idx_sort[0])
+        # Ensure i_z is not the same as i_max to avoid cross-product failure
+        if i_z == i_max: i_z = int(idx_sort[0]) if int(idx_sort[0]) != i_max else int(idx_sort[1])
+        sz = 1.0 if df_harmonized[SENSORS[s]["gyr"][i_z]].median() >= 0 else -1.0
+    else:
+        i_z = int(idx_sort[0])
+        sz = 1.0 if acc_data[i_z] >= 0 else -1.0
+        
+    vx, vy, vz = np.zeros(3), np.zeros(3), np.zeros(3)
+    if is_foot:
+        # Foot ISB: X=Up(Gravity), Y=Backward, Z=Right
+        vx[i_max], vz[i_z] = s_max, sz
+        vy = np.cross(vz, vx)
+    else:
+        # General ISB: X=Forward, Y=Up(Gravity), Z=Right
+        vy[i_max], vz[i_z] = s_max, sz
+        vx = np.cross(vy, vz)
+        
+    R = np.vstack([vx, vy, vz])
+    sensor_guesses[s] = R.tolist()
+
+plt.rcParams['figure.dpi'] = 100
+colors = ['red', 'green', 'blue']
+
+# Calculate a consistent symmetric Y-limit based on initial data
+all_m = [df_harmonized[SENSORS[s]["acc"][i]].mean() for s in sensors_list for i in range(3)]
+y_limit = max(np.abs(all_m)) * 1.15 if all_m else 1.2
+if y_limit < 1.2: y_limit = 1.2
+
+fig1, ax1 = plt.subplots(figsize=(8, 5))
+x = np.arange(len(sensors_list))
+for i in range(3):
+    m = [df_harmonized[SENSORS[s]["acc"][i]].mean() for s in sensors_list]
+    ax1.bar(x + (i-1)*0.2, m, 0.2, color=colors[i], label=f"Raw {['X','Y','Z'][i]}")
+ax1.axhline(0, color='black', lw=1, ls='--')
+ax1.set_ylim(-y_limit, y_limit)
+ax1.set_xticks(x); ax1.set_xticklabels(sensors_list, rotation=30); ax1.legend(fontsize='x-small')
+
+fig2, ax2 = plt.subplots(figsize=(8, 5))
+for s_idx, s in enumerate(sensors_list):
+    v = df_harmonized[list(SENSORS[s]["acc"])].var().to_numpy()
+    v_pct = (v / v.sum()) * 100
+    btm = 0
+    for i in range(3):
+        ax2.bar(s_idx, v_pct[i], bottom=btm, color=colors[i], label=f"Raw {['X','Y','Z'][i]}" if s_idx==0 else ""); btm += v_pct[i]
+ax2.set_xticks(x); ax2.set_xticklabels(sensors_list, rotation=30); ax2.legend(fontsize='x-small')
+
+orient_imgs = {}
+for s in sensors_list:
+    fig_s = plt.figure(figsize=(3, 3)); ax_s = fig_s.add_subplot(111, projection='3d')
+    R_guess = np.array(sensor_guesses[s])
+    for j in range(3):
+        # To show the Raw Axes (X,Y,Z) in ISB space, we plot columns of R
+        v_vec = R_guess[:, j] * 0.5
+        ax_s.quiver(0, 0, 0, v_vec[0], v_vec[2], v_vec[1], color=colors[j], linewidth=3, arrow_length_ratio=0.3)
+    ax_s.set_xlim(-0.6, 0.6); ax_s.set_ylim(-0.6, 0.6); ax_s.set_zlim(-0.6, 0.6)
+    ax_s.set_axis_off()
+    orient_imgs[s] = get_plot_b64(fig_s)
+
+first_p = sensors_list[0] if sensors_list else None
+acc_sample = df_harmonized[list(SENSORS[first_p]["acc"])].mean() if first_p and first_p in SENSORS else None
+
+if acc_sample is not None and len(acc_sample) >= 3:
+    m_val = np.linalg.norm(acc_sample)
+    detected_ms2 = bool(m_val > 5.0)
+else:
+    m_val = 1.0
+    detected_ms2 = False
+
+res_dict = {
+    "SENSORS": SENSORS, 
+    "guesses": sensor_guesses, 
+    "img_mean": get_plot_b64(fig1), 
+    "img_pca": get_plot_b64(fig2), 
+    "orientations": orient_imgs, 
+    "detected_ms2": detected_ms2
+}
+res_dict
+        `);
+        
+        const output = pythonResult.toJs();
+        const detectedSensors = output.get("SENSORS");
+        const guesses = output.get("guesses");
+        const orientations = output.get("orientations");
+        const detectedMs2 = output.get("detected_ms2");
+
+        // [NEW] Auto-set gravity dropdown based on detection
+        document.getElementById('grav-const-select').value = detectedMs2 ? "9.80665" : "1.0";
+
+        // [FIX] Assign global variables for "Before" images to be used in comparison grid
+        beforeAccImgB64 = output.get('img_mean');
+        beforePcaImgB64 = output.get('img_pca');
+
+        // Update initial plots display
+        document.getElementById('initial-acc-img').src = `data:image/png;base64,${beforeAccImgB64}`;
+        document.getElementById('initial-pca-img').src = `data:image/png;base64,${beforePcaImgB64}`;
+
+        // [FIX] Generate CSV Download Link for the Structural (Renamed) file before UI update
+        const csvData = await pyodide.runPythonAsync(`df_harmonized.to_csv(index=False)`);
+        const blob = new Blob([csvData], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        
+        const pid = document.getElementById('input-pid').value || "unknown";
+        const sid = document.getElementById('input-session').value || "unknown";
+        const act = document.getElementById('input-activity').value || "unknown";
+        const fileName = `p-${pid}_s-${sid}_a-${act}_structural.csv`;
+
+        // Update detected sensors metadata table
+        const tableBody = document.getElementById('sensor-table-body');
+        tableBody.innerHTML = "";
+        detectedSensors.forEach((value, key) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight: bold; color: #174871;">${key}</td>
+                <td>${value.get('acc') ? Array.from(value.get('acc')).join(', ') : 'None'}</td>
+                <td>${value.get('gyr') ? Array.from(value.get('gyr')).join(', ') : 'None'}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // [NEW] Hide Phase B's back button to prevent skipping Phase C's logic
+        document.getElementById('back-to-form-btn').style.display = 'none';
+
+        // Populate Matrix Calibration
+        const bodyContainer = document.getElementById('body-matrix-container');
+        const footContainer = document.getElementById('foot-matrix-container');
+        if (bodyContainer) bodyContainer.innerHTML = "";
+        if (footContainer) footContainer.innerHTML = "";
+
+        guesses.forEach((matrix, sensorName) => {
+            const card = document.createElement('div');
+            card.className = "matrix-card";
+            const isFoot = sensorName.toUpperCase().includes("FOOT");
+            card.innerHTML = `
+                <div style="display: flex; align-items: flex-start; gap: 20px;">
+                    <div style="flex: 0 0 180px; text-align: center; background: #f8fafc; border-radius: 8px; padding: 10px; border: 1px solid #e2e8f0;">
+                        <img src="data:image/png;base64,${orientations.get(sensorName)}" style="width: 160px; height: 160px; margin-bottom: 5px;">
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #174871;">Detected Raw Orientation</div>
+                        <div style="font-size: 0.6rem; color: #64748b;">(X:R, Y:G, Z:B)</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <h4 style="color: #174871; border-bottom: 2px solid #985672; display: inline-block; margin-bottom: 10px;">${sensorName}</h4>
+                        <div class="matrix-grid">
+                            <div></div><div class="matrix-header-label">Mapped Axis</div><div class="matrix-header-label">Direction</div><div></div>
+                            
+                            <div style="font-weight:600;">ISB X:</div>
+                            <select class="m-axis-x">${['X','Y','Z'].map((a,i)=>`<option value="${i}" ${matrix[0][i]!==0?'selected':''}>Raw ${a}</option>`).join('')}</select>
+                            <select class="m-sign-x"><option value="1" ${matrix[0].find(v=>v>0)?'selected':''}>+</option><option value="-1" ${matrix[0].find(v=>v<0)?'selected':''}>-</option></select>
+                            <span style="font-size: 0.7rem; color: #94a3b8;">${isFoot ? "(Up/Gravity)" : "(Forward)"}</span>
+
+                            <div style="font-weight:600;">ISB Y:</div>
+                            <select class="m-axis-y">${['X','Y','Z'].map((a,i)=>`<option value="${i}" ${matrix[1][i]!==0?'selected':''}>Raw ${a}</option>`).join('')}</select>
+                            <select class="m-sign-y"><option value="1" ${matrix[1].find(v=>v>0)?'selected':''}>+</option><option value="-1" ${matrix[1].find(v=>v<0)?'selected':''}>-</option></select>
+                            <span style="font-size: 0.7rem; color: #94a3b8;">${isFoot ? "(Backward)" : "(Up/Gravity)"}</span>
+
+                            <div style="font-weight:600;">ISB Z:</div>
+                            <select class="m-axis-z">${['X','Y','Z'].map((a,i)=>`<option value="${i}" ${matrix[2][i]!==0?'selected':''}>Raw ${a}</option>`).join('')}</select>
+                            <select class="m-sign-z"><option value="1" ${matrix[2].find(v=>v>0)?'selected':''}>+</option><option value="-1" ${matrix[2].find(v=>v<0)?'selected':''}>-</option></select>
+                            <span style="font-size: 0.7rem; color: #94a3b8;">(Lateral)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            card.dataset.sensor = sensorName;
+            if (isFoot) {
+                footContainer.appendChild(card);
+            } else {
+                bodyContainer.appendChild(card);
+            }
+        });
+
+        // Update Phase B UI with success and download button
+        const successMsg = document.getElementById('mapping-success-msg');
+        const actionsDiv = document.getElementById('mapping-actions');
+        
+        if(successMsg) successMsg.style.display = 'block';
+        if(actionsDiv) actionsDiv.innerHTML = `
+            <a href="${url}" download="${fileName}" class="btn" style="background: #985672; color: white; text-decoration: none; display: inline-block; line-height: 24px;">
+                📥 Download Structural CSV
+            </a>
+            <button class="btn btn-start" disabled style="background: #ccc; cursor: not-allowed; min-width: 150px;">Harmonization Done</button>
+        `;
+
+        // Lock Phase B UI
+        document.getElementById('mapping-section').style.opacity = "0.7";
+        const mappingInputs = document.querySelectorAll('#mapping-section select, #mapping-section input:not([type="checkbox"]), #mapping-section .mapping-row input');
+        mappingInputs.forEach(el => {
+            el.disabled = true;
+            if(el.type === 'checkbox') el.style.cursor = 'default';
+        });
+
+        // Toggle Active style: B -> C
+        document.getElementById('mapping-section').classList.remove('active-phase');
+        document.getElementById('result-section').classList.add('active-phase');
+
+        // Show Phase C
+        const resultSection = document.getElementById('result-section');
+        resultSection.style.display = 'block';
+        setTimeout(() => {
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+
+    } catch (err) {
+        alert("Harmonization Error: " + err);
+    } finally {
+        loading.style.display = 'none'; // Hide loading overlay
+    }
+}
+
+function goBackToCalibration() {
+    // Re-enable Matrix UI
+    const matrixInputs = document.querySelectorAll('#coordinate-calibration select');
+    matrixInputs.forEach(el => el.disabled = false);
+    document.getElementById('coordinate-calibration').style.opacity = '1';
+    document.getElementById('sync-preview-btn').style.display = 'inline-block';
+    
+    // Show Phase C's back button again
+    document.getElementById('back-to-mapping-btn').style.display = 'inline-block';
+
+    // Hide preview
+    document.getElementById('sync-comparison-area').style.display = 'none';
+    document.getElementById('coordinate-calibration').scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Phase C: Part 1 - Sync & Preview Rotation
+ * Applies user-adjusted rotation matrices to the harmonized dataframe.
+ */
+async function syncAndPreviewRotation() {
+    const loading = document.getElementById('loading-overlay');
+    loading.style.display = 'flex';
+
+    // Lock Coordinate Calibration UI
+    const matrixInputs = document.querySelectorAll('#coordinate-calibration select');
+    matrixInputs.forEach(el => el.disabled = true);
+    document.getElementById('coordinate-calibration').style.opacity = '0.7';
+    document.getElementById('sync-preview-btn').style.display = 'none';
+
+    // [NEW] Hide Phase C's back button while looking at sync results
+    document.getElementById('back-to-mapping-btn').style.display = 'none';
+
+    const cards = document.querySelectorAll('.matrix-card');
+    const finalMatrices = {};
+    cards.forEach(card => {
+        const s = card.getAttribute('data-sensor');
+        const m = [[0,0,0],[0,0,0],[0,0,0]];
+        ['x','y','z'].forEach((axis, idx) => {
+            const rawIdx = parseInt(card.querySelector(`.m-axis-${axis}`).value);
+            const sign = parseFloat(card.querySelector(`.m-sign-${axis}`).value);
+            m[idx][rawIdx] = sign;
+        });
+        finalMatrices[s] = m;
+    });
+
+    try {
+        pyodide.globals.set("user_matrices", pyodide.toPy(finalMatrices));
+        const pythonResult = await pyodide.runPythonAsync(`
+import numpy as np
+import matplotlib.pyplot as plt
+
+def normalize(v):
+    n = np.linalg.norm(v)
+    return v/n if n > 1e-6 else v
+
+# Calculate symmetric Y-limit based on the "Before" data for direct comparison
+sens_list_for_lim = list(SENSORS.keys())
+before_means = [df_harmonized[SENSORS[s]["acc"][i]].mean() for s in sens_list_for_lim for i in range(3)]
+y_limit_sync = max(np.abs(before_means)) * 1.15 if before_means else 1.2
+if y_limit_sync < 1.2: y_limit_sync = 1.2
+
+df_rotation_preview = df_harmonized.copy()
+for s, m_list in user_matrices.items():
+    R = np.array(m_list)
+    a_cols = list(SENSORS[s]["acc"])
+    acc_isb = (R @ df_rotation_preview[a_cols].to_numpy().T).T
+    df_rotation_preview[a_cols] = acc_isb
+
+# Generate After Rotation Plots
+def gen_plots(df_p):
+    sens = list(SENSORS.keys())
+    # Acc
+    fig1, ax1 = plt.subplots(figsize=(8, 5))
+    x_arr = np.arange(len(sens))
+    for i in range(3):
+        m_vals = [df_p[SENSORS[s]["acc"][i]].mean() for s in sens]
+        ax1.bar(x_arr + (i-1)*0.2, m_vals, 0.2, color=['red','green','blue'][i], label=f"ISB {['X','Y','Z'][i]}")
+    ax1.axhline(0, color='black', lw=1, ls='--')
+    ax1.set_ylim(-y_limit_sync, y_limit_sync)
+    ax1.set_xticks(x_arr); ax1.set_xticklabels(sens, rotation=30); ax1.legend(fontsize='x-small')
+    # PCA
+    fig2, ax2 = plt.subplots(figsize=(8, 5))
+    for idx, s in enumerate(sens):
+        v = df_p[list(SENSORS[s]["acc"])].var().to_numpy()
+        v_p = (v / v.sum()) * 100
+        b = 0
+        for i in range(3):
+            ax2.bar(idx, v_p[i], bottom=b, color=['red','green','blue'][i], label=f"ISB {['X','Y','Z'][i]}" if idx==0 else ""); b += v_p[i]
+    ax2.set_xticks(x_arr); ax2.set_xticklabels(sens, rotation=30); ax2.legend(fontsize='x-small')
+    return get_plot_b64(fig1), get_plot_b64(fig2)
+
+aft_acc, aft_pca = gen_plots(df_rotation_preview)
+{"aft_acc": aft_acc, "aft_pca": aft_pca}
+        `);
+        const res = pythonResult.toJs();
+
+        // Show Comparison Area
+        const comparisonArea = document.getElementById('sync-comparison-area');
+        if (comparisonArea) {
+            comparisonArea.style.display = 'block';
+            // Set all 4 images in the 2x2 grid
+            document.getElementById('before-acc-img').src = `data:image/png;base64,${beforeAccImgB64}`;
+            document.getElementById('before-pca-img').src = `data:image/png;base64,${beforePcaImgB64}`;
+            document.getElementById('after-acc-img').src = `data:image/png;base64,${res.get('aft_acc')}`;
+            document.getElementById('after-pca-img').src = `data:image/png;base64,${res.get('aft_pca')}`;
+            
+            comparisonArea.scrollIntoView({ behavior: 'smooth' });
+        }
+    } catch (e) {
+        alert("Rotation Sync Error: " + e);
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+/**
+ * Phase C: Part 2 - Final Process (Gravity) & Export
+ * Normalizes data to g units, applies gravity removal filters,
+ * and prepares the final visualization.
+ */
+async function applyFinalProcessAndExport() {
+    const loading = document.getElementById('loading-overlay');
+    loading.style.display = 'flex';
+
+    const fsValue = document.getElementById('input-fs').value;
+    const gravConst = document.getElementById('grav-const-select').value;
+    const doRemoval = document.getElementById('toggle-grav-removal').checked;
+
+    // Lock Gravity Removal UI
+    document.getElementById('grav-const-select').disabled = true;
+    document.getElementById('toggle-grav-removal').disabled = true;
+    event.target.style.display = 'none'; // Hide "Apply Gravity Removal" button
+
+    // [FIX] Always collect the latest matrices from UI before final export
+    const cards = document.querySelectorAll('.matrix-card');
+    const finalMatrices = {};
+    cards.forEach(card => {
+        const s = card.dataset.sensor;
+        const m = [[0,0,0],[0,0,0],[0,0,0]];
+        ['x','y','z'].forEach((axis, idx) => {
+            const rawIdx = card.querySelector(`.m-axis-${axis}`).value;
+            const sign = card.querySelector(`.m-sign-${axis}`).value;
+            m[idx][rawIdx] = parseFloat(sign);
+        });
+        finalMatrices[s] = m;
+    });
+
+    try {
+        pyodide.globals.set("user_fs", parseFloat(fsValue));
+        pyodide.globals.set("user_matrices", pyodide.toPy(finalMatrices));
+        pyodide.globals.set("user_pid", document.getElementById('input-pid').value);
+        pyodide.globals.set("user_sid", document.getElementById('input-session').value);
+        pyodide.globals.set("user_act", document.getElementById('input-activity').value);
+        pyodide.globals.set("grav_config", pyodide.toPy({ const: parseFloat(gravConst), remove: doRemoval }));
+        
+        const pythonResult = await pyodide.runPythonAsync(`
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import io
+import base64
+
+G0 = 9.80665 # Standard gravity constant
+def normalize(v):
+    n = np.linalg.norm(v)
+    return v/n if n > 1e-6 else v
+
+def find_static_window(acc, win=100, step=10):
+    n = len(acc)
+    min_var = float('inf')
+    best_w = (0, win)
+    search_limit = min(n - win, 500)
+    for start in range(0, search_limit, step):
+        end = start + win
+        current_var = np.var(acc[start:end], axis=0).sum()
+        if current_var < min_var:
+            min_var = current_var
+            best_w = (start, end)
+    return best_w
+
+def gravity_track(acc_isb, gyr_isb, dt, initial_g, alpha=0.02):
+    N = len(acc_isb)
+    g_body = np.zeros((N, 3))
+    g_body[0] = initial_g
+    for i in range(1, N):
+        omega = gyr_isb[i - 1]
+        g_body[i] = g_body[i - 1] - np.cross(omega, g_body[i - 1]) * dt
+        g_body[i] = normalize(g_body[i])
+        mag = np.linalg.norm(acc_isb[i])
+        if 0.85 <= mag <= 1.15:
+            meas = normalize(acc_isb[i])
+            g_body[i] = normalize((1 - alpha) * g_body[i] + alpha * meas)
+    return g_body
+
+df_final = df_harmonized.copy()
+fs = float(user_fs)
+dt = 1.0 / fs
+
+rotated_but_with_grav = {} # Used to store rotated data with gravity for comparison plots
+for s, m_list in user_matrices.items():
+    R = np.array(m_list)
+    a_cols = list(SENSORS[s]["acc"])
+    g_cols = list(SENSORS[s]["gyr"]) if SENSORS[s]["gyr"] else None
+
+    acc_raw = df_final[a_cols].ffill().fillna(0).to_numpy(float)
+    acc_isb = (R @ acc_raw.T).T
+
+    # [NEW] Scale to g and detect static window correctly
+    ws, we = find_static_window(acc_isb, win=int(fs))
+    acc_static = acc_isb[ws:we]
+    mag_raw = np.median(np.linalg.norm(acc_static, axis=1))
+    
+    if 0.3 <= mag_raw <= 2.5:
+        scale_to_g = 1.0
+    elif 6.0 <= mag_raw <= 14.0:
+        scale_to_g = 1.0 / G0
+    else:
+        scale_to_g = 1.0 / mag_raw if mag_raw > 1e-6 else 1.0
+        
+    acc_g = acc_isb * scale_to_g
+    rotated_but_with_grav[s] = acc_g # Record rotated data converted to g units
+
+    if g_cols:
+        gyr_raw = df_final[g_cols].ffill().fillna(0).to_numpy(float)
+        # [FIX] Ensure Gyro is rotated and ready for cross product
+        gyr_isb = (R @ gyr_raw.T).T 
+        df_final[g_cols] = gyr_isb
+
+    if grav_config["remove"] and g_cols:
+        # Dynamic tracking using complementary filter
+        g_init = normalize(np.mean(acc_g[ws:we], axis=0))
+        g_path = gravity_track(acc_g, gyr_isb, dt, g_init)
+        df_final[a_cols] = acc_g - g_path
+    elif grav_config["remove"]:
+        # Static subtraction if no gyro is available
+        g_static = np.mean(acc_g[ws:we], axis=0)
+        df_final[a_cols] = acc_g - g_static
+    else:
+        df_final[a_cols] = acc_g
+
+# --- [3] Final Visualization (As requested) ---
+# Standard Colors (Order: Red, Blue, Green as requested)
+AX_COLORS = ['red', 'blue', 'green']
+pfxs = sorted(list(SENSORS.keys()))
+
+# Calculate Global Limits for synchronization
+max_before_abs, max_after_abs, global_wave_max = 0.1, 0.01, 0.1
+
+for p in pfxs:
+    # 1. Before Limits
+    acc_with_g = rotated_but_with_grav[p]
+    ws_tmp, we_tmp = find_static_window(acc_with_g, win=int(fs))
+    before_means = np.mean(acc_with_g[ws_tmp:we_tmp], axis=0)
+    max_before_abs = max(max_before_abs, np.abs(before_means).max())
+    
+    # 2. After Limits (Means)
+    after_means = df_final[list(SENSORS[p]["acc"])].iloc[ws_tmp:we_tmp].mean().values
+    max_after_abs = max(max_after_abs, np.abs(after_means).max())
+    
+    # 3. Waveform Limits (Full peaks)
+    wave_max = df_final[list(SENSORS[p]["acc"])].abs().max().max()
+    global_wave_max = max(global_wave_max, wave_max)
+
+y_limit_sym_before = max_before_abs + 0.25
+y_limit_sym_after = y_limit_sym_before # Match Before scale
+y_limit_wave = global_wave_max * 1.1
+
+# 1. Summary Plot: Before vs After Grouped Bar Charts (Restore original style)
+fig_sum, (ax_b, ax_a) = plt.subplots(1, 2, figsize=(16, 5))
+x_f = np.arange(len(pfxs))
+w_f = 0.25
+
+for idx, p in enumerate(pfxs):
+    acc_with_g = rotated_but_with_grav[p]
+    ws_v, we_v = find_static_window(acc_with_g, win=int(fs))
+    before = np.mean(acc_with_g[ws_v:we_v], axis=0)
+    after = df_final[list(SENSORS[p]["acc"])].iloc[ws_v:we_v].mean().values
+
+    for j in range(3):
+        ax_b.bar(idx + (j-1)*w_f, before[j], w_f, color=AX_COLORS[j], label=f"ISB {['X','Y','Z'][j]}" if idx==0 else "")
+        ax_a.bar(idx + (j-1)*w_f, after[j], w_f, color=AX_COLORS[j], label=f"ISB {['X','Y','Z'][j]}" if idx==0 else "")
+
+ax_b.axhline(0, color='black', lw=1, ls='--')
+ax_b.set_ylim(-y_limit_sym_before, y_limit_sym_before)
+ax_b.set_title("Before: Static Mean (Grouped)"); ax_b.set_ylabel("Accel (g)")
+ax_b.set_xticks(x_f); ax_b.set_xticklabels(pfxs, rotation=30); ax_b.legend(fontsize='x-small')
+
+ax_a.axhline(0, color='black', lw=1, ls='--')
+ax_a.set_ylim(-y_limit_sym_after, y_limit_sym_after)
+ax_a.set_title("After: Static Mean (Grouped)"); ax_a.set_ylabel("Accel (g)")
+ax_a.set_xticks(x_f); ax_a.set_xticklabels(pfxs, rotation=30); ax_a.legend(fontsize='x-small')
+plt.tight_layout()
+buf_sum = io.BytesIO(); fig_sum.savefig(buf_sum, format='png'); plt.close(fig_sum)
+summary_b64 = base64.b64encode(buf_sum.getvalue()).decode('utf-8')
+
+# 2. Individual Waveform Plots: One per sensor
+waveform_plots = {}
+for p in pfxs:
+    fig_w, ax_w = plt.subplots(figsize=(15, 4))
+    cols = list(SENSORS[p]["acc"])
+    for j in range(3):
+        ax_w.plot(df_final[cols[j]], color=AX_COLORS[j], alpha=0.8, label=f"ISB {['X','Y','Z'][j]}")
+    ax_w.axhline(0, color='black', lw=1, ls='--')
+    ax_w.set_ylim(-y_limit_wave, y_limit_wave)
+    ax_w.set_title(f"Waveform: {p} (Full Duration - Linear Accel)")
+    ax_w.set_xlabel("Sample Index"); ax_w.set_ylabel("Accel (g)")
+    ax_w.legend(loc='upper right', fontsize='x-small')
+    plt.tight_layout()
+    buf_w = io.BytesIO(); fig_w.savefig(buf_w, format='png'); plt.close(fig_w)
+    waveform_plots[p] = base64.b64encode(buf_w.getvalue()).decode('utf-8')
+
+{"summary": summary_b64, "waveforms": waveform_plots}
+        `);
+        
+        const finalOutput = pythonResult.toJs();
+        const summaryB64 = finalOutput.get('summary');
+        const waveformsMap = finalOutput.get('waveforms');
+        const container = document.getElementById('final-plots-container');
+        container.innerHTML = "";
+
+        // Render Summary
+        const sumWrapper = document.createElement('div');
+        sumWrapper.className = "plot-item";
+        sumWrapper.innerHTML = `
+            <h5 style="margin-bottom: 10px; color: #174871; border-left: 4px solid #10b981; padding-left: 10px;">
+                Overall Gravity Removal Comparison (Grouped Sensors)
+            </h5>
+            <img src="data:image/png;base64,${summaryB64}" class="analysis-img" style="max-width: 100%; height: auto;">
+        `;
+        container.appendChild(sumWrapper);
+
+        // Render Individual Waveforms
+        waveformsMap.forEach((b64, sensorName) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = "plot-item";
+            wrapper.style.maxWidth = "100%";
+            wrapper.innerHTML = `
+                <h5 style="margin-bottom: 10px; color: #174871; border-left: 4px solid #3b82f6; padding-left: 10px;">
+                    Verification: ${sensorName}
+                </h5>
+                <img src="data:image/png;base64,${b64}" class="analysis-img" style="max-width: 100%; height: auto;">
+            `;
+            container.appendChild(wrapper);
+        });
+
+        const csvFinal = await pyodide.runPythonAsync(`df_final.to_csv(index=False)`);
+        const blob = new Blob([csvFinal], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+
+        const pid = document.getElementById('input-pid').value || "unknown";
+        const sid = document.getElementById('input-session').value || "unknown";
+        const act = document.getElementById('input-activity').value || "unknown";
+        const fileName = `p-${pid}_s-${sid}_a-${act}_harmonized.csv`;
+
+        document.getElementById('final-download-area').innerHTML = `
+            <a href="${url}" download="${fileName}" class="btn btn-start" style="background: #985672; margin-bottom: 20px;">📥 Download Harmonized CSV</a>
+            <div style="margin-top: 20px; margin-bottom: 20px;">
+                <p style="font-weight: 600; color: #985672;"><br>Congradulation! You finished the data harmonization pipeline.</p>
+                <br>
+                <p style="color: #475569;">Do you have more data to sync? You also can batch update here:</p>
+            </div>
+            <button class="btn" onclick="showBatchSection()" style="background: #174871; margin-top: 10px;">More: Batch Processing →</button>
+        `;
+
+        // Toggle Active style: C -> D
+        document.getElementById('result-section').classList.remove('active-phase');
+        document.getElementById('final-section').classList.add('active-phase');
+
+        document.getElementById('final-section').style.display = 'block';
+        document.getElementById('final-section').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) {
+        alert("Sync Error: " + e);
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+/**
+ * Phase E: Batch Processing Logic
+ * Utilizes the File System Access API to process multiple files locally
+ * using the transformation logic defined in previous steps.
+ */
+let inputDirHandle = null;
+let outputDirHandle = null;
+
+function showBatchSection() {
+    document.getElementById('batch-section').style.display = 'block';
+    document.getElementById('batch-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function selectBatchFolder(type) {
+    try {
+        const handle = await window.showDirectoryPicker();
+        if (type === 'input') {
+            inputDirHandle = handle;
+            document.getElementById('batch-input-path').value = handle.name + " (Verified)";
+            logBatch(`✅ Input folder "${handle.name}" linked.`);
+        } else {
+            outputDirHandle = handle;
+            document.getElementById('batch-output-path').value = handle.name + " (Verified)";
+            logBatch(`✅ Output folder "${handle.name}" linked.`);
+        }
+        
+        const runBtn = document.getElementById('run-batch-btn');
+        if (inputDirHandle && outputDirHandle) {
+            runBtn.disabled = false;
+            runBtn.style.background = "#f59e0b";
+            runBtn.style.cursor = "pointer";
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function logBatch(msg) {
+    const consoleEle = document.getElementById('batch-console');
+    consoleEle.style.display = 'block';
+    const line = document.createElement('div');
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    consoleEle.appendChild(line);
+    consoleEle.scrollTop = consoleEle.scrollHeight;
+}
+
+async function runBatchProcessing() {
+    if (!inputDirHandle || !outputDirHandle) return;
+    
+    const runBtn = document.getElementById('run-batch-btn');
+    runBtn.disabled = true;
+    runBtn.innerText = "Processing...";
+    
+    logBatch("🚀 Starting batch processing...");
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+        for await (const entry of inputDirHandle.values()) {
+            if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.csv')) {
+                logBatch(`Reading: ${entry.name}...`);
+                
+                try {
+                    const file = await entry.getFile();
+                    const content = await file.text();
+                    
+                    // Write to Pyodide FS
+                    pyodide.FS.writeFile("batch_input.csv", content);
+                    
+                    // Run the same pipeline logic in Python
+                    await pyodide.runPythonAsync(`
+batch_df = pd.read_csv("batch_input.csv")
+batch_df = batch_df.rename(columns=col_mapping)
+batch_df = batch_df.loc[:, ~batch_df.columns.duplicated()]
+
+for s, m_list in user_matrices.items():
+    R = np.array(m_list)
+    a_cols = list(SENSORS[s]["acc"])
+    g_cols = list(SENSORS[s]["gyr"]) if SENSORS[s]["gyr"] else None
+
+    acc_raw = batch_df[a_cols].ffill().fillna(0).to_numpy(float)
+    acc_isb = (R @ acc_raw.T).T
+
+    ws, we = find_static_window(acc_isb, win=int(user_fs))
+    acc_static = acc_isb[ws:we]
+    mag_raw = np.median(np.linalg.norm(acc_static, axis=1))
+    scale_to_g = (1.0 / G0) if 6.0 <= mag_raw <= 14.0 else (1.0 / mag_raw if mag_raw > 1e-6 else 1.0)
+    acc_g = acc_isb * scale_to_g
+
+    if g_cols:
+        gyr_raw = batch_df[g_cols].ffill().fillna(0).to_numpy(float)
+        gyr_isb = (R @ gyr_raw.T).T
+        batch_df[g_cols] = gyr_isb
+        if grav_config["remove"]:
+            g_init = normalize(np.mean(acc_g[ws:we], axis=0))
+            g_path = gravity_track(acc_g, gyr_isb, 1.0/user_fs, g_init)
+            batch_df[a_cols] = acc_g - g_path
+        else:
+            batch_df[a_cols] = acc_g
+    else:
+        if grav_config["remove"]:
+            batch_df[a_cols] = acc_g - np.mean(acc_g[ws:we], axis=0)
+        else:
+            batch_df[a_cols] = acc_g
+
+csv_output = batch_df.to_csv(index=False)
+                    `);
+                    
+                    const resultCsv = pyodide.globals.get("csv_output");
+                    const outputFileName = entry.name.replace(".csv", "_harmonized.csv");
+                    
+                    const newFileHandle = await outputDirHandle.getFileHandle(outputFileName, { create: true });
+                    const writable = await newFileHandle.createWritable();
+                    await writable.write(resultCsv);
+                    await writable.close();
+                    
+                    logBatch(`✅ Saved: ${outputFileName}`);
+                    successCount++;
+                } catch (fileErr) {
+                    logBatch(`❌ Error processing ${entry.name}: ${fileErr.message}`);
+                    failCount++;
+                }
+            }
+        }
+        logBatch(`🏁 Batch finished. Success: ${successCount}, Failed: ${failCount}`);
+    } catch (err) {
+        logBatch(`❌ Fatal error: ${err.message}`);
+    }
+    runBtn.innerText = "Batch Complete";
+}
+</script>
+</html>
